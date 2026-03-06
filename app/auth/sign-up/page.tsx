@@ -74,7 +74,20 @@ export default function SignUpPage() {
       if (error) throw error
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Ocurrio un error')
+      const errorMessage = error instanceof Error ? error.message : 'Ocurrio un error'
+      
+      // Translate common Supabase errors to Spanish
+      if (errorMessage.includes('email rate limit exceeded')) {
+        setError('Demasiados intentos de registro. Por favor espera unos minutos antes de intentar de nuevo.')
+      } else if (errorMessage.includes('User already registered')) {
+        setError('Este email ya esta registrado. Intenta iniciar sesion.')
+      } else if (errorMessage.includes('Password should be at least')) {
+        setError('La contrasena debe tener al menos 6 caracteres.')
+      } else if (errorMessage.includes('Invalid email')) {
+        setError('El email ingresado no es valido.')
+      } else {
+        setError(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }
