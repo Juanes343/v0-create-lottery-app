@@ -58,7 +58,7 @@ export default function SignUpPage() {
         return
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -71,8 +71,31 @@ export default function SignUpPage() {
           },
         },
       })
+      
       if (error) throw error
-      router.push('/auth/sign-up-success')
+      
+      // If user was created and session exists (email confirmation disabled in Supabase)
+      // or if user identity was created, try to sign in directly
+      if (data.user && !data.session) {
+        // Email confirmation is required, show success page
+        router.push('/auth/sign-up-success')
+      } else if (data.session) {
+        // User is already signed in, go to dashboard
+        router.push('/dashboard')
+      } else {
+        // Fallback - try to sign in directly
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        
+        if (signInError) {
+          // If sign in fails, it means email confirmation is needed
+          router.push('/auth/sign-up-success')
+        } else {
+          router.push('/dashboard')
+        }
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Ocurrio un error'
       
@@ -167,7 +190,16 @@ export default function SignUpPage() {
                       onChange={(e) => setRepeatPassword(e.target.value)}
                     />
                   </div>
-                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  {error && (
+                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                      <p>{error}</p>
+                      {error.includes('intentos') && (
+                        <p className="mt-2 text-xs">
+                          Tip: Prueba con un email diferente o espera 1-2 minutos.
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Creando cuenta...' : 'Registrarse'}
                   </Button>
