@@ -138,7 +138,7 @@ export default function HomePage() {
               <span className="font-semibold">BonoRifa</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              La plataforma para rifas digitales
+              2024 - La plataforma para rifas digitales
             </p>
           </div>
         </div>
