@@ -101,24 +101,22 @@ export function DashboardSidebar({ profile, userEmail }: DashboardSidebarProps) 
         {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
       </Button>
 
-      {/* Mobile sidebar */}
+      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
+
+      {/* Single sidebar - responsive */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-card border-r border-border transition-transform lg:static lg:translate-x-0',
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-card border-r border-border transition-transform',
+          'lg:static lg:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
-        <SidebarContent />
-      </aside>
-
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 flex-col bg-card border-r border-border">
         <SidebarContent />
       </aside>
     </>
