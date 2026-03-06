@@ -189,18 +189,24 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="status">Estado</Label>
+              <Label htmlFor="status">Estado de la Rifa</Label>
               <Select value={status} onValueChange={(value: 'draft' | 'active' | 'completed' | 'cancelled') => setStatus(value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">Borrador</SelectItem>
-                  <SelectItem value="active">Activa</SelectItem>
+                  <SelectItem value="draft">Borrador (no visible)</SelectItem>
+                  <SelectItem value="active">Activa (visible al publico)</SelectItem>
                   <SelectItem value="completed">Completada</SelectItem>
                   <SelectItem value="cancelled">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                {status === 'draft' && 'La rifa no sera visible hasta que la actives.'}
+                {status === 'active' && 'La rifa sera visible en el enlace publico.'}
+                {status === 'completed' && 'La rifa ha finalizado.'}
+                {status === 'cancelled' && 'La rifa ha sido cancelada.'}
+              </p>
             </div>
           </CardContent>
         </Card>
