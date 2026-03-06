@@ -22,6 +22,8 @@ export interface Raffle {
   currency: string
   status: 'draft' | 'active' | 'completed' | 'cancelled'
   draw_date?: string
+  whatsapp_number?: string
+  payment_instructions?: string
   created_at: string
   updated_at: string
 }
@@ -56,7 +58,8 @@ export interface Purchase {
   total_amount: number
   currency: string
   status: 'pending' | 'completed' | 'failed' | 'refunded'
-  stripe_session_id?: string
+  payment_method?: string
+  payment_reference?: string
   created_at: string
   updated_at: string
 }

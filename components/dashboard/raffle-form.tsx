@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Plus, X, ImageIcon } from 'lucide-react'
+import { Loader2, Plus, X, ImageIcon, MessageCircle } from 'lucide-react'
 import type { Raffle } from '@/lib/types'
 
 interface RaffleFormProps {
@@ -36,6 +36,8 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
   const [currency] = useState(raffle?.currency || 'COP')
   const [status, setStatus] = useState(raffle?.status || 'draft')
   const [drawDate, setDrawDate] = useState(raffle?.draw_date || '')
+  const [whatsappNumber, setWhatsappNumber] = useState(raffle?.whatsapp_number || '')
+  const [paymentInstructions, setPaymentInstructions] = useState(raffle?.payment_instructions || '')
 
   const generateSlug = (text: string) => {
     return text
@@ -84,6 +86,8 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
       currency,
       status,
       draw_date: drawDate || null,
+      whatsapp_number: whatsappNumber || null,
+      payment_instructions: paymentInstructions || null,
     }
 
     try {
@@ -259,6 +263,48 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
                   ${potentialRevenue.toLocaleString('es-CO')} COP
                 </span>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact & Payment */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Contacto y Pagos
+            </CardTitle>
+            <CardDescription>
+              Configura como los compradores te contactaran
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp">Numero de WhatsApp</Label>
+              <Input
+                id="whatsapp"
+                type="tel"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                placeholder="573001234567"
+              />
+              <p className="text-xs text-muted-foreground">
+                Incluye el codigo de pais sin el signo +. Ej: 573001234567
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="payment-instructions">Instrucciones de Pago</Label>
+              <Textarea
+                id="payment-instructions"
+                value={paymentInstructions}
+                onChange={(e) => setPaymentInstructions(e.target.value)}
+                placeholder="Ej: Puedes pagar por Nequi al 300-123-4567 o transferencia Bancolombia cuenta 123-456789-00"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Estas instrucciones se mostraran al comprador antes de contactarte
+              </p>
             </div>
           </CardContent>
         </Card>

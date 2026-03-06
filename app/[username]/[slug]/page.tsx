@@ -114,6 +114,8 @@ export default async function PublicRafflePage({ params }: Props) {
           soldNumbers={soldNumbersSet}
           pricePerNumber={raffle.price_per_number}
           currency={raffle.currency}
+          whatsappNumber={raffle.whatsapp_number}
+          paymentInstructions={raffle.payment_instructions}
         />
 
         {packages && packages.length > 0 && (

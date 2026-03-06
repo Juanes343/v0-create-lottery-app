@@ -18,6 +18,8 @@ interface NumberGridProps {
   soldNumbers: Set<number>
   pricePerNumber: number
   currency: string
+  whatsappNumber?: string
+  paymentInstructions?: string
 }
 
 const NUMBERS_PER_PAGE = 500
@@ -30,6 +32,8 @@ export function NumberGrid({
   soldNumbers,
   pricePerNumber,
   currency,
+  whatsappNumber,
+  paymentInstructions,
 }: NumberGridProps) {
   const router = useRouter()
   const [selectedNumbers, setSelectedNumbers] = useState<Set<number>>(new Set())
@@ -255,6 +259,8 @@ export function NumberGrid({
         selectedNumbers={Array.from(selectedNumbers).sort((a, b) => a - b)}
         pricePerNumber={pricePerNumber}
         currency={currency}
+        whatsappNumber={whatsappNumber}
+        paymentInstructions={paymentInstructions}
         onSuccess={handleCheckoutSuccess}
       />
     </div>
