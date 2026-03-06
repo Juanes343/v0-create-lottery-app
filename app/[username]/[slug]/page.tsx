@@ -108,6 +108,7 @@ export default async function PublicRafflePage({ params }: Props) {
 
         <NumberGrid
           raffleId={raffle.id}
+          raffleName={raffle.title}
           rangeStart={raffle.number_range_start}
           rangeEnd={raffle.number_range_end}
           soldNumbers={soldNumbersSet}

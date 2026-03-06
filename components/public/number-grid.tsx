@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Search, ShoppingCart, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import Link from 'next/link'
+import { CheckoutModal } from './checkout-modal'
 
 interface NumberGridProps {
   raffleId: string
+  raffleName: string
   rangeStart: number
   rangeEnd: number
   soldNumbers: Set<number>
@@ -22,15 +24,18 @@ const NUMBERS_PER_PAGE = 500
 
 export function NumberGrid({
   raffleId,
+  raffleName,
   rangeStart,
   rangeEnd,
   soldNumbers,
   pricePerNumber,
   currency,
 }: NumberGridProps) {
+  const router = useRouter()
   const [selectedNumbers, setSelectedNumbers] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(0)
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
 
   const totalNumbers = rangeEnd - rangeStart + 1
   const totalPages = Math.ceil(totalNumbers / NUMBERS_PER_PAGE)
@@ -74,6 +79,11 @@ export function NumberGrid({
 
   const total = selectedNumbers.size * pricePerNumber
   const numberDigits = rangeEnd.toString().length
+
+  const handleCheckoutSuccess = useCallback(() => {
+    setSelectedNumbers(new Set())
+    router.refresh()
+  }, [router])
 
   const getNumberStatus = (num: number) => {
     if (soldNumbers.has(num)) return 'sold'
@@ -221,12 +231,11 @@ export function NumberGrid({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <Button asChild className="w-full">
-                    <Link
-                      href={`/checkout/${raffleId}?numbers=${Array.from(selectedNumbers).join(',')}`}
-                    >
-                      Continuar al Pago
-                    </Link>
+                  <Button 
+                    className="w-full" 
+                    onClick={() => setIsCheckoutOpen(true)}
+                  >
+                    Continuar al Pago
                   </Button>
                   <Button variant="outline" onClick={clearSelection} className="w-full">
                     Limpiar Seleccion
@@ -237,6 +246,17 @@ export function NumberGrid({
           </CardContent>
         </Card>
       </div>
+
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        raffleId={raffleId}
+        raffleName={raffleName}
+        selectedNumbers={Array.from(selectedNumbers).sort((a, b) => a - b)}
+        pricePerNumber={pricePerNumber}
+        currency={currency}
+        onSuccess={handleCheckoutSuccess}
+      />
     </div>
   )
 }
