@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Ticket, Users, CreditCard, BarChart3, ArrowRight } from 'lucide-react'
+import { Ticket, Users, MessageCircle, BarChart3, ArrowRight } from 'lucide-react'
 
 export default function HomePage() {
   return (
@@ -15,7 +15,7 @@ export default function HomePage() {
           </Link>
           <div className="flex items-center gap-4">
             <Button variant="ghost" asChild>
-              <Link href="/lookup">Consultar Numeros</Link>
+              <Link href="/consultar">Consultar Numeros</Link>
             </Button>
             <Button variant="outline" asChild>
               <Link href="/auth/login">Iniciar Sesion</Link>
@@ -45,7 +45,7 @@ export default function HomePage() {
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link href="/lookup">Consultar mis Numeros</Link>
+              <Link href="/consultar">Consultar mis Numeros</Link>
             </Button>
           </div>
         </div>
@@ -88,12 +88,12 @@ export default function HomePage() {
 
             <Card>
               <CardHeader>
-                <CreditCard className="h-10 w-10 text-primary" />
-                <CardTitle>Pagos con Stripe</CardTitle>
+                <MessageCircle className="h-10 w-10 text-primary" />
+                <CardTitle>Contacto por WhatsApp</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Acepta pagos con tarjeta de credito de forma segura con Stripe
+                  Tus compradores te contactan directamente por WhatsApp para coordinar el pago
                 </CardDescription>
               </CardContent>
             </Card>
