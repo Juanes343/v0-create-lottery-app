@@ -31,7 +31,7 @@ export default function HomePage() {
       <section className="py-20 lg:py-32">
         <div className="container mx-auto px-4 text-center">
           <h1 className="mx-auto max-w-4xl text-4xl font-bold tracking-tight text-balance lg:text-6xl">
-            Crea y Gestiona tus Rifas Digitales
+            Crea y Gestiona tus Bonos y Rifas Digitales
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground text-pretty">
             La plataforma mas completa para crear rifas online, vender numeros 
