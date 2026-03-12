@@ -1,9 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Calendar, Trophy } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import type { Raffle, Profile } from '@/lib/types'
 import Link from 'next/link'
 
@@ -22,138 +20,126 @@ export function RaffleHero({
   totalNumbers,
   progress,
 }: RaffleHeroProps) {
-  const [currentImage, setCurrentImage] = useState(0)
+  const [current, setCurrent] = useState(0)
   const images = raffle.images.length > 0 ? raffle.images : ['/placeholder.svg']
 
-  const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % images.length)
-  }
-
-  const prevImage = () => {
-    setCurrentImage((prev) => (prev - 1 + images.length) % images.length)
-  }
-
-  const statusColors = {
-    active: 'bg-accent text-accent-foreground',
-    completed: 'bg-primary text-primary-foreground',
-    cancelled: 'bg-destructive text-destructive-foreground',
-    draft: 'bg-muted text-muted-foreground',
-  }
+  // Auto-play
+  useEffect(() => {
+    if (images.length <= 1) return
+    const t = setInterval(() => setCurrent((c) => (c + 1) % images.length), 3500)
+    return () => clearInterval(t)
+  }, [images.length])
 
   return (
-    <header className="bg-card border-b">
-      <div className="container mx-auto px-4 py-6">
-        {/* Business Name */}
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {profile.logo_url && (
-              <img
-                src={profile.logo_url}
-                alt={profile.business_name}
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            )}
-            <span className="font-semibold">{profile.business_name}</span>
-          </div>
-          <Link href={`/${profile.username}`}>
-            <Button variant="outline" size="sm">
-              Ver Todas las Rifas
-            </Button>
-          </Link>
+    <div className="w-full">
+
+      {/* 1. Barra superior: negocio */}
+      <div className="flex items-center justify-between bg-gray-950 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          {profile.logo_url ? (
+            <img src={profile.logo_url} alt={profile.business_name}
+              className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white/20" />
+          ) : (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-sm font-black text-white">
+              {profile.business_name?.charAt(0)?.toUpperCase()}
+            </div>
+          )}
+          <span className="truncate text-sm font-black uppercase tracking-widest text-white sm:text-base">
+            {profile.business_name}
+          </span>
         </div>
+        <Link href={`/${profile.username}`}
+          className="shrink-0 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-gray-300 transition-all hover:border-white/40 hover:text-white">
+          Ver todas →
+        </Link>
+      </div>
 
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Image Carousel */}
-          <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
+      {/* 2. Título e info */}
+      <div className="bg-white px-4 pt-6 pb-4 sm:px-6">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="text-3xl font-black uppercase leading-tight tracking-tight text-gray-950 sm:text-4xl lg:text-5xl">
+            {raffle.title}
+          </h1>
+          {raffle.prize_description && (
+            <p className="mt-2 text-base font-medium text-cyan-600 sm:text-lg">{raffle.prize_description}</p>
+          )}
+          {raffle.draw_date && (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
+              <Calendar className="h-3.5 w-3.5" />
+              Sorteo: {new Date(raffle.draw_date).toLocaleDateString('es-CO', {
+                year: 'numeric', month: 'long', day: 'numeric',
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. Carrusel — imagen completa visible */}
+      <div className="relative w-full bg-gray-50">
+        <div className="relative mx-auto max-w-3xl">
+          {images.map((src, i) => (
             <img
-              src={images[currentImage]}
-              alt={raffle.title}
-              className="h-full w-full object-cover"
+              key={i} src={src} alt={`${raffle.title} ${i + 1}`}
+              className={`block w-full object-contain transition-opacity duration-700 ${
+                i === current ? 'opacity-100' : 'absolute inset-0 opacity-0'
+              }`}
+              style={{ maxHeight: '420px' }}
             />
-            {images.length > 1 && (
-              <>
-                <button
-                  onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 backdrop-blur-sm transition-colors hover:bg-background"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-2 backdrop-blur-sm transition-colors hover:bg-background"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-                <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
-                  {images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImage(index)}
-                      className={`h-2 w-2 rounded-full transition-colors ${
-                        index === currentImage ? 'bg-primary' : 'bg-background/60'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+          ))}
+
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={() => setCurrent((c) => (c - 1 + images.length) % images.length)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2.5 text-gray-800 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:scale-110 active:scale-95"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setCurrent((c) => (c + 1) % images.length)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2.5 text-gray-800 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:scale-110 active:scale-95"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+                {images.map((_, i) => (
+                  <button key={i} onClick={() => setCurrent(i)}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      i === current ? 'w-6 bg-gray-800' : 'w-2 bg-gray-400/60'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 4. Barra de progreso + precio */}
+      <div className="border-b bg-white px-4 py-5 sm:px-6">
+        <div className="mx-auto max-w-3xl flex items-end justify-between gap-4">
+          <div className="flex-1">
+            <div className="mb-2 flex justify-between text-xs font-semibold">
+              <span className="text-gray-500">{soldCount.toLocaleString('es-CO')} de {totalNumbers.toLocaleString('es-CO')} vendidos</span>
+              <span className="text-emerald-600">{progress}% vendido</span>
+            </div>
+            <div className="h-3 overflow-hidden rounded-full bg-gray-100 shadow-inner">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700"
+                style={{ width: `${Math.max(progress, 2)}%` }}
+              />
+            </div>
           </div>
-
-          {/* Info */}
-          <div className="flex flex-col justify-center">
-            <Badge className={`${statusColors[raffle.status]} mb-4 w-fit`}>
-              {raffle.status === 'active' ? 'En Venta' : raffle.status}
-            </Badge>
-
-            <h1 className="mb-2 text-3xl font-bold lg:text-4xl">{raffle.title}</h1>
-
-            <div className="mb-4 flex items-center gap-2 text-muted-foreground">
-              <Trophy className="h-5 w-5 text-primary" />
-              <span>{raffle.prize_description}</span>
-            </div>
-
-            {raffle.draw_date && (
-              <div className="mb-6 flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-5 w-5" />
-                <span>
-                  Sorteo: {new Date(raffle.draw_date).toLocaleDateString('es-CO', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </span>
-              </div>
-            )}
-
-            {/* Progress */}
-            <div className="rounded-xl bg-muted p-4">
-              <div className="mb-2 flex justify-between text-sm">
-                <span className="font-medium">Progreso de Venta</span>
-                <span className="font-bold text-primary">{progress}%</span>
-              </div>
-              <div className="mb-3 h-3 overflow-hidden rounded-full bg-background">
-                <div
-                  className="h-full bg-primary transition-all duration-500"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>{soldCount.toLocaleString('es-CO')} vendidos</span>
-                <span>{totalNumbers.toLocaleString('es-CO')} total</span>
-              </div>
-            </div>
-
-            {/* Price */}
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">Precio por numero</p>
-              <p className="text-3xl font-bold text-primary">
-                ${raffle.price_per_number.toLocaleString('es-CO')}
-                <span className="text-lg font-normal text-muted-foreground"> {raffle.currency}</span>
-              </p>
-            </div>
+          <div className="shrink-0 text-right">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">c/número</p>
+            <p className="text-3xl font-black leading-none text-emerald-600">
+              ${raffle.price_per_number.toLocaleString('es-CO')}
+            </p>
+            <p className="text-[10px] font-bold text-gray-400">{raffle.currency}</p>
           </div>
         </div>
       </div>
-    </header>
+
+    </div>
   )
 }

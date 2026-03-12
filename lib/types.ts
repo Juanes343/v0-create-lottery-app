@@ -24,15 +24,23 @@ export interface Raffle {
   draw_date?: string
   whatsapp_number?: string
   payment_instructions?: string
+  additional_prizes?: AdditionalPrize[]
+  prizes_title?: string
   created_at: string
   updated_at: string
+}
+
+export interface AdditionalPrize {
+  position: number
+  description: string
+  image_url?: string
 }
 
 export interface NumberPackage {
   id: string
   raffle_id: string
   quantity: number
-  discount_percentage: number
+  discount_percent: number
   is_active: boolean
   created_at: string
 }

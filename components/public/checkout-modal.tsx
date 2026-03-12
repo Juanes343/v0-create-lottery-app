@@ -81,7 +81,8 @@ Por favor confirmar disponibilidad y metodo de pago.`
       alert('Por favor completa tu nombre y telefono')
       return
     }
-    const cleanNumber = whatsappNumber?.replace(/\D/g, '') || ''
+    const digits = whatsappNumber?.replace(/\D/g, '') || ''
+    const cleanNumber = digits.startsWith('57') ? digits : `57${digits}`
     const url = `https://wa.me/${cleanNumber}?text=${generateWhatsAppMessage()}`
     window.open(url, '_blank')
   }

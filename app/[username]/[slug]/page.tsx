@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import { RaffleHero } from '@/components/public/raffle-hero'
 import { NumberGrid } from '@/components/public/number-grid'
 import { PackageSelector } from '@/components/public/package-selector'
 import { RaffleFooter } from '@/components/public/raffle-footer'
 import type { Metadata } from 'next'
+import type { AdditionalPrize } from '@/lib/types'
 
 interface Props {
   params: Promise<{ username: string; slug: string }>
@@ -89,7 +91,17 @@ export default async function PublicRafflePage({ params }: Props) {
   const progress = Math.round((soldCount / totalNumbers) * 100)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
+
+      {/* Header app */}
+      <header className="w-full bg-[#0f1c2e] px-4 py-3 text-center">
+        <Link href="/">
+          <span className="text-lg font-black uppercase tracking-widest text-white">
+            Bono<span className="text-cyan-400">Rifa</span>
+          </span>
+        </Link>
+      </header>
+
       <RaffleHero
         raffle={raffle}
         profile={profile}
@@ -98,26 +110,51 @@ export default async function PublicRafflePage({ params }: Props) {
         progress={progress}
       />
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h2 className="mb-2 text-2xl font-bold text-center">Selecciona tus Numeros</h2>
-          <p className="text-center text-muted-foreground">
-            Haz clic en los numeros disponibles para seleccionarlos
-          </p>
+      <main className="mx-auto max-w-3xl px-4 py-8 pb-28 lg:pb-12">
+
+        {/* Premios adicionales — encima de paquetes */}
+        {raffle.additional_prizes && (raffle.additional_prizes as AdditionalPrize[]).length > 0 && (
+          <div className="mb-10 overflow-hidden rounded-2xl shadow-xl">
+            <div className="bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 px-6 py-5 text-center">
+              {raffle.prizes_title && (
+                <p className="text-xs font-bold uppercase tracking-widest text-yellow-400">{raffle.prizes_title}</p>
+              )}
+              <h2 className="text-3xl font-black uppercase tracking-tight text-white">🏆 Premios</h2>
+            </div>
+            <div className="grid gap-px bg-gray-200 sm:grid-cols-2 lg:grid-cols-3">
+              {(raffle.additional_prizes as AdditionalPrize[]).map((prize) => (
+                <div key={prize.position} className="group overflow-hidden bg-white transition-all hover:shadow-md">
+                  {prize.image_url && (
+                    <div className="h-48 w-full overflow-hidden bg-gray-100">
+                      <img src={prize.image_url} alt={prize.description}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    </div>
+                  )}
+                  <div className="border-t-2 border-yellow-400 p-4">
+                    <p className="text-sm font-bold text-gray-900">{prize.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Selección de números */}
+        <div>
+          <NumberGrid
+            raffleId={raffle.id}
+            raffleName={raffle.title}
+            rangeStart={raffle.number_range_start}
+            rangeEnd={raffle.number_range_end}
+            soldNumbers={soldNumbersSet}
+            pricePerNumber={raffle.price_per_number}
+            currency={raffle.currency}
+            whatsappNumber={raffle.whatsapp_number}
+            paymentInstructions={raffle.payment_instructions}
+          />
         </div>
 
-        <NumberGrid
-          raffleId={raffle.id}
-          raffleName={raffle.title}
-          rangeStart={raffle.number_range_start}
-          rangeEnd={raffle.number_range_end}
-          soldNumbers={soldNumbersSet}
-          pricePerNumber={raffle.price_per_number}
-          currency={raffle.currency}
-          whatsappNumber={raffle.whatsapp_number}
-          paymentInstructions={raffle.payment_instructions}
-        />
-
+        {/* Paquetes */}
         {packages && packages.length > 0 && (
           <PackageSelector
             packages={packages}

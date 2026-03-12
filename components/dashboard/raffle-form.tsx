@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Plus, X, ImageIcon, MessageCircle } from 'lucide-react'
-import type { Raffle } from '@/lib/types'
+import { Loader2, Plus, X, ImageIcon, MessageCircle, Trophy, Pencil, Check } from 'lucide-react'
+import type { Raffle, AdditionalPrize } from '@/lib/types'
 
 interface RaffleFormProps {
   raffle?: Raffle
@@ -38,6 +38,48 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
   const [drawDate, setDrawDate] = useState(raffle?.draw_date || '')
   const [whatsappNumber, setWhatsappNumber] = useState(raffle?.whatsapp_number || '')
   const [paymentInstructions, setPaymentInstructions] = useState(raffle?.payment_instructions || '')
+  const [additionalPrizes, setAdditionalPrizes] = useState<AdditionalPrize[]>(
+    raffle?.additional_prizes || []
+  )
+  const [prizesTitle, setPrizesTitle] = useState(raffle?.prizes_title || '')
+  const [newPrizeDescription, setNewPrizeDescription] = useState('')
+  const [newPrizeImageUrl, setNewPrizeImageUrl] = useState('')
+  const [editingPrizeIndex, setEditingPrizeIndex] = useState<number | null>(null)
+  const [editPrizeDescription, setEditPrizeDescription] = useState('')
+  const [editPrizeImageUrl, setEditPrizeImageUrl] = useState('')
+
+  // Paquetes
+  interface PkgInput { quantity: number; discount: number }
+  const [packages, setPackages] = useState<PkgInput[]>([])
+  const [newPkgQty, setNewPkgQty] = useState('')
+  const [newPkgDiscount, setNewPkgDiscount] = useState('0')
+
+  useEffect(() => {
+    if (!raffle?.id) return
+    const supabase = createClient()
+    supabase
+      .from('number_packages')
+      .select('quantity, discount_percent')
+      .eq('raffle_id', raffle.id)
+      .eq('is_active', true)
+      .then(({ data }) => {
+        if (data) setPackages(data.map((p) => ({ quantity: p.quantity, discount: p.discount_percent })))
+      })
+  }, [raffle?.id])
+
+  const addPackage = () => {
+    const qty = parseInt(newPkgQty)
+    const disc = parseInt(newPkgDiscount) || 0
+    if (!qty || qty < 1) return
+    if (packages.some((p) => p.quantity === qty)) return
+    setPackages([...packages, { quantity: qty, discount: disc }].sort((a, b) => a.quantity - b.quantity))
+    setNewPkgQty('')
+    setNewPkgDiscount('0')
+  }
+
+  const removePackage = (qty: number) => {
+    setPackages(packages.filter((p) => p.quantity !== qty))
+  }
 
   const generateSlug = (text: string) => {
     return text
@@ -66,6 +108,28 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
     setImages(images.filter((_, i) => i !== index))
   }
 
+  const addAdditionalPrize = () => {
+    if (newPrizeDescription.trim()) {
+      setAdditionalPrizes([
+        ...additionalPrizes,
+        {
+          position: additionalPrizes.length + 2,
+          description: newPrizeDescription.trim(),
+          image_url: newPrizeImageUrl.trim() || undefined,
+        },
+      ])
+      setNewPrizeDescription('')
+      setNewPrizeImageUrl('')
+    }
+  }
+
+  const removeAdditionalPrize = (index: number) => {
+    const updated = additionalPrizes
+      .filter((_, i) => i !== index)
+      .map((p, i) => ({ ...p, position: i + 2 }))
+    setAdditionalPrizes(updated)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -88,22 +152,42 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
       draw_date: drawDate || null,
       whatsapp_number: whatsappNumber || null,
       payment_instructions: paymentInstructions || null,
+      additional_prizes: additionalPrizes.length > 0 ? additionalPrizes : null,
+      prizes_title: prizesTitle.trim() || null,
     }
 
     try {
+      let raffleId: string
+
       if (isEditing) {
         const { error } = await supabase
           .from('raffles')
           .update(raffleData)
           .eq('id', raffle.id)
-
         if (error) throw error
+        raffleId = raffle.id
       } else {
-        const { error } = await supabase
+        const { data: newRaffle, error } = await supabase
           .from('raffles')
           .insert(raffleData)
-
+          .select('id')
+          .single()
         if (error) throw error
+        raffleId = newRaffle.id
+      }
+
+      // Sincronizar paquetes
+      await supabase.from('number_packages').delete().eq('raffle_id', raffleId)
+      if (packages.length > 0) {
+        const { error: pkgError } = await supabase.from('number_packages').insert(
+          packages.map((p) => ({
+            raffle_id: raffleId,
+            quantity: p.quantity,
+            discount_percent: p.discount,
+            is_active: true,
+          }))
+        )
+        if (pkgError) throw pkgError
       }
 
       router.push('/dashboard')
@@ -315,6 +399,287 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Paquetes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <span className="text-lg">📦</span>
+            Paquetes de Números
+          </CardTitle>
+          <CardDescription>
+            Ofrece paquetes con descuento para incentivar compras de mayor cantidad (opcional)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-xl border border-dashed border-blue-300 bg-blue-50/50 p-4 space-y-3">
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Nuevo Paquete</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Cantidad de números *</Label>
+                <Input
+                  type="number" min="2" placeholder="Ej: 10"
+                  value={newPkgQty}
+                  onChange={(e) => setNewPkgQty(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPackage())}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Descuento % (0 = sin descuento)</Label>
+                <Input
+                  type="number" min="0" max="90" placeholder="Ej: 10"
+                  value={newPkgDiscount}
+                  onChange={(e) => setNewPkgDiscount(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPackage())}
+                />
+              </div>
+            </div>
+            {newPkgQty && (
+              <div className="rounded-lg bg-blue-100 px-3 py-2 text-xs text-blue-800">
+                <strong>Vista previa:</strong>{' '}
+                x{newPkgQty} números →{' '}
+                ${(parseInt(newPkgQty) * pricePerNumber * (1 - (parseInt(newPkgDiscount) || 0) / 100)).toLocaleString('es-CO')} COP
+                {parseInt(newPkgDiscount) > 0 && ` (${newPkgDiscount}% off)`}
+              </div>
+            )}
+            <Button
+              type="button" onClick={addPackage}
+              disabled={!newPkgQty || parseInt(newPkgQty) < 2}
+              className="w-full gap-2 bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" />
+              Agregar Paquete
+            </Button>
+          </div>
+
+          {packages.length > 0 ? (
+            <div className="space-y-2">
+              {packages.map((pkg) => {
+                const total = Math.round(pkg.quantity * pricePerNumber * (1 - pkg.discount / 100))
+                return (
+                  <div key={pkg.quantity} className="flex items-center justify-between rounded-xl border bg-card px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm font-black text-blue-700">
+                        x{pkg.quantity}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">${total.toLocaleString('es-CO')} COP</p>
+                        <p className="text-xs text-muted-foreground">
+                          {pkg.quantity} números{pkg.discount > 0 ? ` · ${pkg.discount}% descuento` : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button" onClick={() => removePackage(pkg.quantity)}
+                      className="rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground py-4">
+              Sin paquetes. Los compradores podrán elegir números individualmente.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Additional Prizes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-yellow-500" />
+            Premios Adicionales
+          </CardTitle>
+          <CardDescription>
+            Agrega premios para el 2do, 3er lugar o los que desees (opcional)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="prizes-title">Título de la sección de premios</Label>
+            <Input
+              id="prizes-title"
+              value={prizesTitle}
+              onChange={(e) => setPrizesTitle(e.target.value)}
+              placeholder="Ej: Lo que puedes ganar, Grandes Premios, Gana esto..."
+            />
+            <p className="text-xs text-muted-foreground">
+              Texto que aparece encima de las fotos de premios en la página pública
+            </p>
+          </div>
+
+          {/* Formulario para agregar premio */}
+          <div className="rounded-xl border border-dashed border-yellow-300 bg-yellow-50/50 p-4 space-y-3">
+            <p className="text-xs font-semibold text-yellow-700 uppercase tracking-wide">
+              Nuevo Premio — {additionalPrizes.length + 2}° Lugar
+            </p>
+            <div className="space-y-2">
+              <Label>Descripción del Premio *</Label>
+              <Input
+                placeholder="Ej: Casco Shoei GT-Air, Audífonos Sony..."
+                value={newPrizeDescription}
+                onChange={(e) => setNewPrizeDescription(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAdditionalPrize())}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <ImageIcon className="h-3.5 w-3.5" />
+                URL de imagen (opcional)
+              </Label>
+              <Input
+                placeholder="https://ejemplo.com/imagen-premio.jpg"
+                value={newPrizeImageUrl}
+                onChange={(e) => setNewPrizeImageUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addAdditionalPrize())}
+              />
+              {newPrizeImageUrl && (
+                <div className="relative h-24 w-24 overflow-hidden rounded-lg border">
+                  <img
+                    src={newPrizeImageUrl}
+                    alt="Preview"
+                    className="h-full w-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+              )}
+            </div>
+            <Button
+              type="button"
+              onClick={addAdditionalPrize}
+              disabled={!newPrizeDescription.trim()}
+              className="w-full gap-2 bg-yellow-500 text-white hover:bg-yellow-600"
+            >
+              <Plus className="h-4 w-4" />
+              Agregar Premio
+            </Button>
+          </div>
+
+          {/* Lista de premios agregados */}
+          {additionalPrizes.length > 0 ? (
+            <div className="space-y-3">
+              {additionalPrizes.map((prize, index) => (
+                <div key={index} className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                  {editingPrizeIndex === index ? (
+                    /* Modo edición */
+                    <div className="p-4 space-y-3 bg-yellow-50/50 border-l-4 border-yellow-400">
+                      <p className="text-xs font-semibold text-yellow-700 uppercase tracking-wide">
+                        Editando — {prize.position}° Lugar
+                      </p>
+                      <div className="space-y-2">
+                        <Label>Descripción *</Label>
+                        <Input
+                          value={editPrizeDescription}
+                          onChange={(e) => setEditPrizeDescription(e.target.value)}
+                          placeholder="Descripción del premio"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          <ImageIcon className="h-3.5 w-3.5" />
+                          URL de imagen (opcional)
+                        </Label>
+                        <Input
+                          value={editPrizeImageUrl}
+                          onChange={(e) => setEditPrizeImageUrl(e.target.value)}
+                          placeholder="https://ejemplo.com/imagen.jpg"
+                        />
+                        {editPrizeImageUrl && (
+                          <div className="h-20 w-20 overflow-hidden rounded-lg border">
+                            <img src={editPrizeImageUrl} alt="preview"
+                              className="h-full w-full object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            if (!editPrizeDescription.trim()) return
+                            const updated = [...additionalPrizes]
+                            updated[index] = {
+                              ...updated[index],
+                              description: editPrizeDescription.trim(),
+                              image_url: editPrizeImageUrl.trim() || undefined,
+                            }
+                            setAdditionalPrizes(updated)
+                            setEditingPrizeIndex(null)
+                          }}
+                          disabled={!editPrizeDescription.trim()}
+                          className="flex-1 gap-2 bg-yellow-500 text-white hover:bg-yellow-600"
+                          size="sm"
+                        >
+                          <Check className="h-4 w-4" /> Guardar
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingPrizeIndex(null)}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Modo lectura */
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      {prize.image_url ? (
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                          <img src={prize.image_url} alt={prize.description}
+                            className="h-full w-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-yellow-100">
+                          <span className="text-lg font-bold text-yellow-700">{prize.position}°</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-muted-foreground">{prize.position}° Lugar</p>
+                        <p className="font-medium text-sm truncate">{prize.description}</p>
+                        {prize.image_url && (
+                          <p className="text-xs text-muted-foreground mt-0.5">📷 Con imagen</p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingPrizeIndex(index)
+                          setEditPrizeDescription(prize.description)
+                          setEditPrizeImageUrl(prize.image_url || '')
+                        }}
+                        className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-yellow-50 hover:text-yellow-600 transition-colors"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeAdditionalPrize(index)}
+                        className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground py-4">
+              No hay premios adicionales. El 1er lugar siempre es el premio principal.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Images */}
       <Card>

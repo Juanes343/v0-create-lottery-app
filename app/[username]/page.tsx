@@ -82,7 +82,7 @@ export default async function UserRafflesPage({ params }: Props) {
               className="mx-auto mb-4 h-20 w-20 rounded-full object-cover"
             />
           )}
-          <h1 className="text-3xl font-bold">{profile.business_name}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{profile.business_name}</h1>
           <p className="mt-2 text-muted-foreground">
             Rifas activas disponibles
           </p>
