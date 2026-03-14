@@ -57,11 +57,11 @@ export function RaffleHero({
       {/* 2. Título e info */}
       <div className="bg-white px-4 pt-6 pb-4 sm:px-6">
         <div className="mx-auto max-w-3xl">
-          <h1 className="text-3xl font-black uppercase leading-tight tracking-tight text-gray-950 sm:text-4xl lg:text-5xl">
+          <h1 className="text-3xl font-black uppercase leading-tight tracking-tight text-gray-950 sm:text-4xl lg:text-5xl break-words">
             {raffle.title}
           </h1>
           {raffle.prize_description && (
-            <p className="mt-2 text-base font-medium text-cyan-600 sm:text-lg">{raffle.prize_description}</p>
+            <p className="mt-2 text-base font-medium text-cyan-600 sm:text-lg break-words">{raffle.prize_description}</p>
           )}
           {raffle.draw_date && (
             <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
@@ -75,15 +75,14 @@ export function RaffleHero({
       </div>
 
       {/* 3. Carrusel — imagen completa visible */}
-      <div className="relative w-full bg-gray-50">
-        <div className="relative mx-auto max-w-3xl">
+      <div className="relative w-full overflow-hidden bg-gray-50">
+        <div className="relative mx-auto max-w-3xl flex items-center justify-center">
           {images.map((src, i) => (
             <img
               key={i} src={src} alt={`${raffle.title} ${i + 1}`}
-              className={`block w-full object-contain transition-opacity duration-700 ${
-                i === current ? 'opacity-100' : 'absolute inset-0 opacity-0'
+              className={`block w-full object-contain transition-opacity duration-700 h-[280px] sm:h-[380px] md:h-[450px] ${
+                i === current ? 'opacity-100' : 'absolute inset-0 opacity-0 pointer-events-none'
               }`}
-              style={{ maxHeight: '420px' }}
             />
           ))}
 

@@ -72,13 +72,13 @@ export function PackageSelector({ packages, pricePerNumber, currency }: PackageS
               )}
 
               {/* Precio */}
-              <div className="mt-5 space-y-1">
+              <div className="mt-5 space-y-1 w-full overflow-hidden">
                 {pkg.discount_percent > 0 && (
                   <p className="text-sm text-gray-500 line-through">
                     ${originalPrice.toLocaleString('es-CO')}
                   </p>
                 )}
-                <p className="text-5xl font-black leading-none text-yellow-400">
+                <p className="text-4xl sm:text-5xl font-black leading-none text-yellow-400 truncate">
                   ${discountedPrice.toLocaleString('es-CO')}
                 </p>
                 <p className="text-xs font-bold uppercase tracking-widest text-gray-500">{currency}</p>

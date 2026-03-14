@@ -91,7 +91,7 @@ export default async function PublicRafflePage({ params }: Props) {
   const progress = Math.round((soldCount / totalNumbers) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden w-full max-w-[100vw]">
 
       {/* Header app */}
       <header className="w-full bg-[#0f1c2e] px-4 py-3 text-center">
