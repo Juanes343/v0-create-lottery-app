@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,13 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle } from 'lucide-react'
+import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
+
+// Cargar el Wallet de MP solo en el cliente (no SSR)
+const MercadoPagoWallet = dynamic(
+  () => import('./mercadopago-wallet').then((m) => m.MercadoPagoWallet),
+  { ssr: false, loading: () => <div className="h-12 animate-pulse rounded-lg bg-gray-100" /> },
+)
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -46,6 +53,8 @@ export function CheckoutModal({
   const [copied, setCopied] = useState(false)
   const [mpLoading, setMpLoading] = useState(false)
   const [mpError, setMpError] = useState<string | null>(null)
+  const [preferenceId, setPreferenceId] = useState<string | null>(null)
+  const step = preferenceId ? 'payment' : 'form'
 
   const total = selectedNumbers.length * pricePerNumber
   const numberDigits = 5
@@ -90,11 +99,8 @@ Por favor confirmar disponibilidad y metodo de pago.`
     window.open(url, '_blank')
   }
 
-  const handleMercadoPago = async () => {
-    if (!name.trim() || !phone.trim()) {
-      alert('Por favor completa tu nombre y teléfono')
-      return
-    }
+  const handleContinuarPago = async () => {
+    if (!name.trim() || !phone.trim()) return
     setMpLoading(true)
     setMpError(null)
     try {
@@ -112,19 +118,23 @@ Por favor confirmar disponibilidad y metodo de pago.`
       const data = await res.json()
       if (!res.ok) {
         if (res.status === 409 && data.takenNumbers) {
-          setMpError(`Los números ${data.takenNumbers.join(', ')} ya no están disponibles. Por favor selecciona otros.`)
+          setMpError(`Los números ${data.takenNumbers.join(', ')} ya no están disponibles. Selecciona otros.`)
         } else {
           setMpError(data.error || 'Error al iniciar el pago')
         }
         return
       }
-      // Redirigir a Mercado Pago
-      window.location.href = data.checkoutUrl
+      setPreferenceId(data.preferenceId)
     } catch {
       setMpError('Error de conexión. Intenta de nuevo.')
     } finally {
       setMpLoading(false)
     }
+  }
+
+  const handleVolver = () => {
+    setPreferenceId(null)
+    setMpError(null)
   }
 
   const copyNumbers = () => {
@@ -140,18 +150,27 @@ Por favor confirmar disponibilidad y metodo de pago.`
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Reservar Numeros</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {step === 'payment' && (
+              <button onClick={handleVolver} className="rounded p-1 hover:bg-gray-100">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            {step === 'form' ? 'Reservar Números' : 'Selecciona cómo pagar'}
+          </DialogTitle>
           <DialogDescription>
-            Completa tus datos para reservar los numeros seleccionados
+            {step === 'form'
+              ? 'Completa tus datos para reservar los números seleccionados'
+              : `Total a pagar: ${formatPrice(total)}`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Selected Numbers Summary */}
+          {/* Resumen siempre visible */}
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-muted-foreground">Numeros seleccionados</span>
+                <span className="text-sm text-muted-foreground">Números seleccionados</span>
                 <Button variant="ghost" size="sm" onClick={copyNumbers}>
                   {copied ? (
                     <Check className="h-4 w-4 text-green-600" />
@@ -167,117 +186,129 @@ Por favor confirmar disponibilidad y metodo de pago.`
                   </Badge>
                 ))}
                 {selectedNumbers.length > 10 && (
-                  <Badge variant="outline">+{selectedNumbers.length - 10} mas</Badge>
+                  <Badge variant="outline">+{selectedNumbers.length - 10} más</Badge>
                 )}
               </div>
               <Separator className="my-3" />
               <div className="flex justify-between items-center">
                 <span className="text-sm">
-                  {selectedNumbers.length} numeros x {formatPrice(pricePerNumber)}
+                  {selectedNumbers.length} números × {formatPrice(pricePerNumber)}
                 </span>
                 <span className="text-lg font-bold text-primary">{formatPrice(total)}</span>
               </div>
             </CardContent>
           </Card>
 
-          {/* Contact Form */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Nombre completo *
-              </Label>
-              <Input
-                id="name"
-                placeholder="Tu nombre"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+          {/* PASO 1: Formulario */}
+          {step === 'form' && (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Nombre completo *
+                  </Label>
+                  <Input
+                    id="name"
+                    placeholder="Tu nombre"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Telefono / WhatsApp *
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="300 123 4567"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Teléfono / WhatsApp *
+                  </Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="300 123 4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email (opcional)
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email (opcional, para recibir confirmación)
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          {/* Payment Instructions */}
-          {paymentInstructions && (
-            <Card className="bg-muted/50">
-              <CardContent className="pt-4">
-                <h4 className="font-medium mb-2">Instrucciones de pago</h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {paymentInstructions}
-                </p>
-              </CardContent>
-            </Card>
+              {paymentInstructions && (
+                <Card className="bg-muted/50">
+                  <CardContent className="pt-4">
+                    <h4 className="font-medium mb-2">Instrucciones de pago</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {paymentInstructions}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {mpError && (
+                <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{mpError}</span>
+                </div>
+              )}
+
+              <Button
+                onClick={handleContinuarPago}
+                disabled={!isFormValid || mpLoading}
+                className="w-full bg-[#009ee3] hover:bg-[#0082c0] text-white font-black"
+                size="lg"
+              >
+                {mpLoading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-5 w-5" />
+                )}
+                {mpLoading ? 'Procesando...' : 'Continuar al pago'}
+              </Button>
+
+              {whatsappNumber && (
+                <Button
+                  onClick={handleWhatsAppClick}
+                  disabled={!isFormValid}
+                  variant="outline"
+                  className="w-full border-green-600 text-green-700 hover:bg-green-50"
+                  size="lg"
+                >
+                  <MessageCircle className="h-5 w-5 mr-2" />
+                  Coordinar por WhatsApp
+                </Button>
+              )}
+            </>
           )}
 
-          {/* Error MP */}
-          {mpError && (
-            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{mpError}</span>
-            </div>
+          {/* PASO 2: Wallet de Mercado Pago embebido */}
+          {step === 'payment' && preferenceId && (
+            <>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <p className="mb-1 text-sm font-semibold text-gray-700">Comprador</p>
+                <p className="text-sm text-gray-500">{name} · {phone}{email ? ` · ${email}` : ''}</p>
+              </div>
+
+              <div className="min-h-[56px]">
+                <MercadoPagoWallet preferenceId={preferenceId} />
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                Pago procesado de forma segura por Mercado Pago. Al completar el pago tus números quedan confirmados.
+              </p>
+            </>
           )}
-
-          {/* Botón Mercado Pago */}
-          <Button
-            onClick={handleMercadoPago}
-            disabled={!isFormValid || mpLoading}
-            className="w-full bg-[#009ee3] hover:bg-[#0082c0] text-white font-black"
-            size="lg"
-          >
-            {mpLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <CreditCard className="mr-2 h-5 w-5" />
-            )}
-            {mpLoading ? 'Procesando...' : 'Pagar con Mercado Pago'}
-          </Button>
-
-          {/* Botón WhatsApp (secundario) */}
-          {whatsappNumber && (
-            <Button
-              onClick={handleWhatsAppClick}
-              disabled={!isFormValid}
-              variant="outline"
-              className="w-full border-green-600 text-green-700 hover:bg-green-50"
-              size="lg"
-            >
-              <MessageCircle className="h-5 w-5 mr-2" />
-              Coordinar por WhatsApp
-            </Button>
-          )}
-
-          <p className="text-xs text-center text-muted-foreground">
-            Pago procesado de forma segura por Mercado Pago
-          </p>
         </div>
       </DialogContent>
     </Dialog>
