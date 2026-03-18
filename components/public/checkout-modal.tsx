@@ -120,7 +120,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
         if (res.status === 409 && data.takenNumbers) {
           setMpError(`Los números ${data.takenNumbers.join(', ')} ya no están disponibles. Selecciona otros.`)
         } else {
-          setMpError(data.error || 'Error al iniciar el pago')
+          setMpError(data.detail || data.error || 'Error al iniciar el pago')
         }
         return
       }

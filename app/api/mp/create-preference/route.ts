@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
         buyer_phone: buyerPhone.trim(),
         buyer_email: safeEmail,
         total_amount: totalAmount,
-        currency: raffle.currency,
         status: 'pending',
         payment_method: 'mercadopago',
       })
@@ -72,8 +71,8 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (purchaseError || !purchase) {
-      console.error('Error creating purchase:', purchaseError)
-      return NextResponse.json({ error: 'Error al crear compra' }, { status: 500 })
+      console.error('Error creating purchase:', purchaseError?.message, purchaseError?.details)
+      return NextResponse.json({ error: 'Error al crear compra', detail: purchaseError?.message }, { status: 500 })
     }
 
     // Reservar los números como pending
