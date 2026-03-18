@@ -89,7 +89,6 @@ export async function POST(req: NextRequest) {
     const { error: numbersError } = await supabase.from('sold_numbers').insert(
       selectedNumbers.map((num: number) => ({
         raffle_id: raffleId,
-        purchase_id: purchase.id,
         number: num,
         buyer_name: buyerName.trim(),
         buyer_phone: buyerPhone.trim(),
