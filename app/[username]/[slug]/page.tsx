@@ -94,10 +94,10 @@ export default async function PublicRafflePage({ params }: Props) {
     <div className="min-h-screen bg-gray-50 overflow-x-hidden w-full max-w-[100vw]">
 
       {/* Header app */}
-      <header className="w-full bg-[#0f1c2e] px-4 py-3 text-center">
+      <header className="w-full border-b border-white/5 bg-gray-950 px-4 py-3 text-center">
         <Link href="/">
-          <span className="text-lg font-black uppercase tracking-widest text-white">
-            Bono<span className="text-cyan-400">Rifa</span>
+          <span className="text-base font-bold text-white">
+            Bono<span className="text-blue-400">Rifa</span>
           </span>
         </Link>
       </header>
@@ -110,28 +110,36 @@ export default async function PublicRafflePage({ params }: Props) {
         progress={progress}
       />
 
-      <main className="mx-auto max-w-3xl px-4 py-8 pb-28 lg:pb-12">
+      <main className="mx-auto max-w-3xl px-4 py-10 pb-28 lg:pb-14">
 
-        {/* Premios adicionales — encima de paquetes */}
+        {/* Premios adicionales */}
         {raffle.additional_prizes && (raffle.additional_prizes as AdditionalPrize[]).length > 0 && (
-          <div className="mb-10 overflow-hidden rounded-2xl shadow-xl">
-            <div className="bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 px-6 py-5 text-center">
+          <div className="mb-12">
+            <div className="mb-5">
               {raffle.prizes_title && (
-                <p className="text-xs font-bold uppercase tracking-widest text-yellow-400">{raffle.prizes_title}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">{raffle.prizes_title}</p>
               )}
-              <h2 className="text-3xl font-black uppercase tracking-tight text-white">🏆 Premios</h2>
+              <h2 className="text-xl font-bold text-gray-900">Premios</h2>
             </div>
-            <div className="grid gap-px bg-gray-200 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {(raffle.additional_prizes as AdditionalPrize[]).map((prize) => (
-                <div key={prize.position} className="group overflow-hidden bg-white transition-all hover:shadow-md">
+                <div key={prize.position} className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                   {prize.image_url && (
-                    <div className="h-48 w-full overflow-hidden bg-gray-100">
+                    <div className="h-44 w-full overflow-hidden bg-gray-100">
                       <img src={prize.image_url} alt={prize.description}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </div>
                   )}
-                  <div className="border-t-2 border-yellow-400 p-4">
-                    <p className="text-sm font-bold text-gray-900">{prize.description}</p>
+                  <div className={`p-4 ${!prize.image_url ? 'flex items-center gap-3' : ''}`}>
+                    {!prize.image_url && (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-semibold text-gray-500">
+                        {prize.position}º
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-gray-400 mb-0.5">{prize.position}º lugar</p>
+                      <p className="text-sm font-semibold text-gray-900">{prize.description}</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -141,6 +149,10 @@ export default async function PublicRafflePage({ params }: Props) {
 
         {/* Selección de números */}
         <div>
+          <div className="mb-5">
+            <h2 className="text-xl font-bold text-gray-900">Elige tu número</h2>
+            <p className="mt-1 text-sm text-gray-500">Selecciona los números que quieres y coordínate por WhatsApp</p>
+          </div>
           <NumberGrid
             raffleId={raffle.id}
             raffleName={raffle.title}

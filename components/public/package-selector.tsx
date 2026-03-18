@@ -1,7 +1,7 @@
 'use client'
 
 import type { NumberPackage } from '@/lib/types'
-import { Zap, Star } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 interface PackageSelectorProps {
   packages: NumberPackage[]
@@ -11,96 +11,80 @@ interface PackageSelectorProps {
 
 export function PackageSelector({ packages, pricePerNumber, currency }: PackageSelectorProps) {
   const sorted = [...packages].sort((a, b) => a.quantity - b.quantity)
-  const mostPopular = sorted.reduce((best, p) => p.discount_percent > best.discount_percent ? p : best, sorted[0])
+  const mostPopular = sorted.reduce(
+    (best, p) => (p.discount_percent > best.discount_percent ? p : best),
+    sorted[0]
+  )
 
   return (
-    <section className="mt-10 overflow-hidden rounded-2xl shadow-xl">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 px-6 py-5 text-center">
-        <div className="mb-1 flex items-center justify-center gap-2">
-          <Zap className="h-4 w-4 text-yellow-400" />
-          <p className="text-xs font-bold uppercase tracking-widest text-yellow-400">Mejor valor</p>
-          <Zap className="h-4 w-4 text-yellow-400" />
-        </div>
-        <h2 className="text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">Adquiérelos</h2>
-        <p className="mt-1 text-sm text-gray-400">Más números = más posibilidades de ganar</p>
+    <section className="mt-12">
+      <div className="mb-6">
+        <h2 className="text-xl font-bold text-gray-900">Paquetes disponibles</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Compra más números y aumenta tus posibilidades
+        </p>
       </div>
 
-      {/* Cards */}
-      <div className="grid grid-cols-1 divide-y divide-gray-700 bg-gray-800 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-3 lg:divide-x">
-        {sorted.map((pkg, idx) => {
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {sorted.map((pkg) => {
           const originalPrice = pkg.quantity * pricePerNumber
           const discountedPrice = Math.round(originalPrice * (1 - pkg.discount_percent / 100))
           const savings = originalPrice - discountedPrice
-          const isPopular = pkg.id === mostPopular?.id && pkg.discount_percent > 0
-          const gradients = [
-            'from-slate-800 to-slate-900',
-            'from-gray-800 to-gray-900',
-            'from-zinc-800 to-zinc-900',
-          ]
+          const isRecommended = pkg.id === mostPopular?.id && pkg.discount_percent > 0
 
           return (
             <div
               key={pkg.id}
-              className={`relative flex flex-col items-center bg-gradient-to-b ${
-                isPopular ? 'from-gray-700 to-gray-900 ring-2 ring-inset ring-yellow-400/40' : gradients[idx % 3]
-              } px-6 py-8 text-center transition-transform hover:-translate-y-0.5`}
+              className={`relative flex flex-col rounded-xl border bg-white p-6 transition-all ${
+                isRecommended
+                  ? 'border-gray-900 shadow-sm ring-1 ring-gray-900/5'
+                  : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+              }`}
             >
-              {isPopular && (
-                <div className="absolute -top-px left-1/2 -translate-x-1/2">
-                  <div className="flex items-center gap-1 rounded-b-lg bg-yellow-400 px-3 py-0.5">
-                    <Star className="h-3 w-3 fill-gray-900 text-gray-900" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-gray-900">Más popular</span>
-                  </div>
+              {isRecommended && (
+                <div className="absolute -top-3 left-5">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1 text-[11px] font-semibold text-white">
+                    <Check className="h-3 w-3" />
+                    Recomendado
+                  </span>
                 </div>
               )}
 
-              {/* Cantidad */}
-              <div className="mt-2">
-                <span className="text-7xl font-black leading-none text-white">x{pkg.quantity}</span>
+              <div className="mb-3 mt-1">
+                <p className="text-4xl font-bold text-gray-900">×{pkg.quantity}</p>
+                <p className="text-sm text-gray-400">números</p>
               </div>
 
-              {/* Descuento */}
-              {pkg.discount_percent > 0 ? (
-                <span className="mt-2 inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-0.5 text-xs font-black uppercase tracking-wider text-emerald-400">
-                  {pkg.discount_percent}% OFF
-                </span>
-              ) : (
-                <span className="mt-2 inline-flex items-center rounded-full bg-gray-700 px-3 py-0.5 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                  Precio regular
+              {pkg.discount_percent > 0 && (
+                <span className="mb-4 inline-flex w-fit items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                  {pkg.discount_percent}% de descuento
                 </span>
               )}
 
-              {/* Precio */}
-              <div className="mt-5 space-y-1 w-full overflow-hidden">
+              <div className="mt-auto pt-4 border-t border-gray-100">
                 {pkg.discount_percent > 0 && (
-                  <p className="text-sm text-gray-500 line-through">
-                    ${originalPrice.toLocaleString('es-CO')}
+                  <p className="text-xs text-gray-400 line-through mb-0.5">
+                    ${originalPrice.toLocaleString('es-CO')} {currency}
                   </p>
                 )}
-                <p className="text-4xl sm:text-5xl font-black leading-none text-yellow-400 truncate">
+                <p className="text-2xl font-bold text-gray-900">
                   ${discountedPrice.toLocaleString('es-CO')}
+                  <span className="ml-1 text-sm font-normal text-gray-400">{currency}</span>
                 </p>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-500">{currency}</p>
+                {savings > 0 && (
+                  <p className="mt-0.5 text-xs text-emerald-600 font-medium">
+                    Ahorras ${savings.toLocaleString('es-CO')}
+                  </p>
+                )}
               </div>
-
-              {savings > 0 && (
-                <div className="mt-3 rounded-lg bg-emerald-500/10 px-4 py-1.5">
-                  <p className="text-xs font-bold text-emerald-400">Ahorras ${savings.toLocaleString('es-CO')}</p>
-                </div>
-              )}
-
-              <button className={`mt-6 w-full rounded-xl py-3.5 text-sm font-black uppercase tracking-wide transition-all active:scale-95 ${
-                isPopular
-                  ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300 shadow-lg shadow-yellow-400/20'
-                  : 'bg-white text-gray-900 hover:bg-gray-100'
-              }`}>
-                Comprar Paquete
-              </button>
             </div>
           )
         })}
       </div>
+
+      <p className="mt-5 text-center text-xs text-gray-400">
+        Selecciona tus números en la grilla y coordina el pago por WhatsApp
+      </p>
     </section>
   )
 }
