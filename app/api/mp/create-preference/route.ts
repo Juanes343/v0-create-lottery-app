@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
         buyer_phone: buyerPhone.trim(),
         buyer_email: safeEmail,
         total_amount: totalAmount,
+        numbers: selectedNumbers,
         status: 'pending',
         payment_method: 'mercadopago',
       })
