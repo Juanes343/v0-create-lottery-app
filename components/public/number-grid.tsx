@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Search, ShoppingCart, X, ChevronLeft, ChevronRight, Sparkles, Ticket } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getRaffleTheme } from '@/lib/themes'
 import { CheckoutModal } from './checkout-modal'
 
 interface NumberGridProps {
@@ -20,6 +21,7 @@ interface NumberGridProps {
   currency: string
   whatsappNumber?: string
   paymentInstructions?: string
+  themeId?: string
 }
 
 const NUMBERS_PER_PAGE = 500
@@ -34,8 +36,10 @@ export function NumberGrid({
   currency,
   whatsappNumber,
   paymentInstructions,
+  themeId,
 }: NumberGridProps) {
   const router = useRouter()
+  const theme = getRaffleTheme(themeId)
   const [showGrid, setShowGrid] = useState(false)
   const [selectedNumbers, setSelectedNumbers] = useState<Set<number>>(new Set())
   const [search, setSearch] = useState('')
@@ -101,10 +105,10 @@ export function NumberGrid({
 
   if (!showGrid) {
     return (
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-violet-50 via-white to-purple-50 shadow-lg">
+      <div className="overflow-hidden rounded-2xl border shadow-lg" style={{ borderColor: `${theme.progressColor}30`, backgroundColor: `${theme.progressColor}08` }}>
         <div className="flex flex-col items-center gap-5 px-8 py-14 text-center">
           <div className="relative">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-xl shadow-violet-200">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl shadow-xl" style={{ backgroundColor: theme.progressColor }}>
               <Sparkles className="h-10 w-10 text-white" />
             </div>
             <div className="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white shadow">
@@ -113,7 +117,7 @@ export function NumberGrid({
           </div>
           <div>
             <p className="mt-2 text-sm text-gray-500">
-              <span className="font-bold text-violet-600">{availableCount.toLocaleString('es-CO')} números disponibles</span>
+              <span className="font-bold" style={{ color: theme.progressColor }}>{availableCount.toLocaleString('es-CO')} números disponibles</span>
               {' '}·{' '}
               <span className="font-bold text-gray-700">${pricePerNumber.toLocaleString('es-CO')} {currency}</span> cada uno
             </p>
@@ -121,7 +125,8 @@ export function NumberGrid({
           <Button
             size="lg"
             onClick={() => setShowGrid(true)}
-            className="gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 px-10 py-6 text-base font-black text-white shadow-xl shadow-violet-200 transition-all hover:from-violet-500 hover:to-purple-500 hover:scale-105 active:scale-95"
+            className="gap-2 rounded-xl px-10 py-6 text-base font-black text-white shadow-xl transition-all hover:opacity-90 hover:scale-105 active:scale-95"
+            style={{ backgroundColor: theme.progressColor }}
           >
             <Sparkles className="h-5 w-5" />
             Seleccionar Número
@@ -177,11 +182,11 @@ export function NumberGrid({
         {/* Legend */}
         <div className="flex flex-wrap gap-3 text-xs">
           <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-600">
-            <div className="h-3 w-3 rounded border-2 border-emerald-500 bg-emerald-100" />
+            <div className="h-3 w-3 rounded border-2 border-gray-300 bg-white" />
             Disponible
           </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1.5 font-medium text-violet-700">
-            <div className="h-3 w-3 rounded bg-violet-600" />
+          <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium" style={{ backgroundColor: `${theme.progressColor}18`, color: theme.progressColor }}>
+            <div className="h-3 w-3 rounded" style={{ backgroundColor: theme.progressColor }} />
             Seleccionado
           </div>
           <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-400">
@@ -201,10 +206,11 @@ export function NumberGrid({
                 disabled={status === 'sold'}
                 className={cn(
                   'aspect-square rounded-lg border-2 text-xs font-bold transition-all duration-150 sm:text-sm',
-                  status === 'available' && 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:border-emerald-500 hover:bg-emerald-100 hover:scale-110 active:scale-95',
-                  status === 'selected' && 'border-violet-600 bg-violet-600 text-white shadow-md shadow-violet-200 scale-105',
+                  status === 'available' && 'border-gray-200 bg-white text-gray-700 hover:scale-110 active:scale-95',
+                  status === 'selected' && 'text-white shadow-md scale-105',
                   status === 'sold' && 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
                 )}
+                style={status === 'selected' ? { borderColor: theme.progressColor, backgroundColor: theme.progressColor } : undefined}
               >
                 {num.toString().padStart(numberDigits, '0')}
               </button>
@@ -222,10 +228,10 @@ export function NumberGrid({
       {/* Cart Sidebar — solo desktop */}
       <div className="hidden lg:block lg:sticky lg:top-4 lg:self-start">
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-          <div className="border-b bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-4">
+          <div className="border-b px-5 py-4" style={{ backgroundColor: theme.topBar }}>
             <div className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-white" />
-              <h3 className="font-black text-white">Tu Selección</h3>
+              <ShoppingCart className="h-5 w-5" style={{ color: theme.topBarText }} />
+              <h3 className="font-black" style={{ color: theme.topBarText }}>Tu Selección</h3>
             </div>
           </div>
           <div className="p-5 space-y-4">
@@ -245,7 +251,8 @@ export function NumberGrid({
                       <button
                         key={num}
                         onClick={() => removeNumber(num)}
-                        className="group flex items-center gap-1 rounded-lg bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700 transition-colors hover:bg-rose-100 hover:text-rose-600"
+                        className="group flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors hover:bg-rose-100 hover:text-rose-600"
+                        style={{ backgroundColor: `${theme.progressColor}18`, color: theme.progressColor }}
                       >
                         {num.toString().padStart(numberDigits, '0')}
                         <X className="h-3 w-3 opacity-0 group-hover:opacity-100" />
@@ -264,13 +271,14 @@ export function NumberGrid({
                   </div>
                   <div className="border-t pt-2 flex justify-between text-base font-black">
                     <span>Total:</span>
-                    <span className="text-violet-600">${total.toLocaleString('es-CO')} {currency}</span>
+                    <span style={{ color: theme.progressColor }}>${total.toLocaleString('es-CO')} {currency}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <Button
-                    className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 py-5 font-black text-white shadow-lg shadow-violet-200 hover:from-violet-500 hover:to-purple-500"
+                    className="w-full rounded-xl py-5 font-black text-white hover:opacity-90 shadow-lg"
+                    style={{ backgroundColor: theme.progressColor }}
                     onClick={() => setIsCheckoutOpen(true)}
                   >
                     Continuar al Pago
@@ -289,21 +297,21 @@ export function NumberGrid({
 
     {/* Barra flotante móvil */}
     {selectedNumbers.size > 0 && (
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-violet-500/30 bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 shadow-2xl lg:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-black/10 px-4 py-3 shadow-2xl lg:hidden" style={{ backgroundColor: theme.topBar }}>
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-black text-white leading-tight">
+            <p className="text-sm font-black leading-tight" style={{ color: theme.topBarText }}>
               {selectedNumbers.size} número{selectedNumbers.size !== 1 ? 's' : ''} seleccionado{selectedNumbers.size !== 1 ? 's' : ''}
             </p>
-            <p className="text-xs font-bold text-violet-200">
+            <p className="text-xs font-bold" style={{ color: `${theme.topBarText}99` }}>
               Total: ${total.toLocaleString('es-CO')} {currency}
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
-            <Button variant="ghost" size="sm" onClick={clearSelection} className="h-9 px-3 text-white/70 hover:bg-white/10 hover:text-white">
+            <Button variant="ghost" size="sm" onClick={clearSelection} className="h-9 px-3 hover:bg-white/10" style={{ color: `${theme.topBarText}99` }}>
               <X className="h-4 w-4" />
             </Button>
-            <Button size="sm" onClick={() => setIsCheckoutOpen(true)} className="h-9 gap-1.5 rounded-xl bg-white font-black text-violet-700 hover:bg-violet-50">
+            <Button size="sm" onClick={() => setIsCheckoutOpen(true)} className="h-9 gap-1.5 rounded-xl font-black hover:opacity-90" style={{ backgroundColor: theme.accentText, color: theme.topBar }}>
               <ShoppingCart className="h-4 w-4" />
               Pagar
             </Button>

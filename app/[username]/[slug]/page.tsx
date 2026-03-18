@@ -5,6 +5,7 @@ import { RaffleHero } from '@/components/public/raffle-hero'
 import { NumberGrid } from '@/components/public/number-grid'
 import { PackageSelector } from '@/components/public/package-selector'
 import { RaffleFooter } from '@/components/public/raffle-footer'
+import { getRaffleTheme } from '@/lib/themes'
 import type { Metadata } from 'next'
 import type { AdditionalPrize } from '@/lib/types'
 
@@ -89,6 +90,7 @@ export default async function PublicRafflePage({ params }: Props) {
   const totalNumbers = raffle.number_range_end - raffle.number_range_start + 1
   const soldCount = soldNumbersSet.size
   const progress = Math.round((soldCount / totalNumbers) * 100)
+  const theme = getRaffleTheme(raffle.theme)
 
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden w-full max-w-[100vw]">
@@ -115,11 +117,11 @@ export default async function PublicRafflePage({ params }: Props) {
         {/* Premios adicionales — encima de paquetes */}
         {raffle.additional_prizes && (raffle.additional_prizes as AdditionalPrize[]).length > 0 && (
           <div className="mb-10 overflow-hidden rounded-2xl shadow-xl">
-            <div className="bg-gradient-to-r from-gray-950 via-gray-900 to-gray-950 px-6 py-5 text-center">
+            <div className="px-6 py-5 text-center" style={{ backgroundColor: theme.topBar }}>
               {raffle.prizes_title && (
-                <p className="text-xs font-bold uppercase tracking-widest text-yellow-400">{raffle.prizes_title}</p>
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.accentText }}>{raffle.prizes_title}</p>
               )}
-              <h2 className="text-3xl font-black uppercase tracking-tight text-white">🏆 Premios</h2>
+              <h2 className="text-3xl font-black uppercase tracking-tight" style={{ color: theme.topBarText }}>🏆 Premios</h2>
             </div>
             <div className="grid gap-px bg-gray-200 sm:grid-cols-2 lg:grid-cols-3">
               {(raffle.additional_prizes as AdditionalPrize[]).map((prize) => (
@@ -130,7 +132,7 @@ export default async function PublicRafflePage({ params }: Props) {
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     </div>
                   )}
-                  <div className="border-t-2 border-yellow-400 p-4">
+                  <div className="border-t-2 p-4" style={{ borderColor: theme.accentText }}>
                     <p className="text-sm font-bold text-gray-900">{prize.description}</p>
                   </div>
                 </div>
@@ -151,6 +153,7 @@ export default async function PublicRafflePage({ params }: Props) {
             currency={raffle.currency}
             whatsappNumber={raffle.whatsapp_number}
             paymentInstructions={raffle.payment_instructions}
+            themeId={raffle.theme}
           />
         </div>
 
@@ -160,11 +163,12 @@ export default async function PublicRafflePage({ params }: Props) {
             packages={packages}
             pricePerNumber={raffle.price_per_number}
             currency={raffle.currency}
+            themeId={raffle.theme}
           />
         )}
       </main>
 
-      <RaffleFooter profile={profile} />
+      <RaffleFooter profile={profile} themeId={raffle.theme} />
     </div>
   )
 }
