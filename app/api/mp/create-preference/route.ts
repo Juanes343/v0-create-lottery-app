@@ -35,12 +35,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Rifa no disponible' }, { status: 404 })
     }
 
-    // Verificar que los números no estén ya tomados
+    // Verificar que los números no estén ya tomados (solo pagados, no pending huérfanos)
     const { data: existingNumbers } = await supabase
       .from('sold_numbers')
       .select('number')
       .eq('raffle_id', raffleId)
       .in('number', selectedNumbers)
+      .eq('status', 'paid')  // solo bloqueamos si ya están PAGADOS
 
     if (existingNumbers && existingNumbers.length > 0) {
       return NextResponse.json(
@@ -51,6 +52,14 @@ export async function POST(req: NextRequest) {
         { status: 409 },
       )
     }
+
+    // Limpiar posibles registros pending huérfanos de intentos anteriores para estos números
+    await supabase
+      .from('sold_numbers')
+      .delete()
+      .eq('raffle_id', raffleId)
+      .in('number', selectedNumbers)
+      .eq('status', 'pending')
 
     const totalAmount = raffle.price_per_number * selectedNumbers.length
     const safeEmail = buyerEmail?.trim() || `${buyerPhone.replace(/\D/g, '')}@noemail.bonorifa.com`
@@ -92,7 +101,8 @@ export async function POST(req: NextRequest) {
     if (numbersError) {
       // Revertir la compra si falló la reserva de números
       await supabase.from('purchases').delete().eq('id', purchase.id)
-      return NextResponse.json({ error: 'Error al reservar números' }, { status: 500 })
+      console.error('Error reserving numbers:', numbersError?.message, numbersError?.details)
+      return NextResponse.json({ error: 'Error al reservar números', detail: numbersError?.message }, { status: 500 })
     }
 
     // Crear preferencia de pago en Mercado Pago
