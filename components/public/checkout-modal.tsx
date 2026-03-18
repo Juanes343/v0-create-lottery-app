@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageCircle, Copy, Check, User, Phone, Mail } from 'lucide-react'
+import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle } from 'lucide-react'
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -32,6 +32,7 @@ interface CheckoutModalProps {
 export function CheckoutModal({
   isOpen,
   onClose,
+  raffleId,
   raffleName,
   selectedNumbers,
   pricePerNumber,
@@ -43,6 +44,8 @@ export function CheckoutModal({
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [copied, setCopied] = useState(false)
+  const [mpLoading, setMpLoading] = useState(false)
+  const [mpError, setMpError] = useState<string | null>(null)
 
   const total = selectedNumbers.length * pricePerNumber
   const numberDigits = 5
@@ -85,6 +88,43 @@ Por favor confirmar disponibilidad y metodo de pago.`
     const cleanNumber = digits.startsWith('57') ? digits : `57${digits}`
     const url = `https://wa.me/${cleanNumber}?text=${generateWhatsAppMessage()}`
     window.open(url, '_blank')
+  }
+
+  const handleMercadoPago = async () => {
+    if (!name.trim() || !phone.trim()) {
+      alert('Por favor completa tu nombre y teléfono')
+      return
+    }
+    setMpLoading(true)
+    setMpError(null)
+    try {
+      const res = await fetch('/api/mp/create-preference', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          raffleId,
+          selectedNumbers,
+          buyerName: name.trim(),
+          buyerPhone: phone.trim(),
+          buyerEmail: email.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (res.status === 409 && data.takenNumbers) {
+          setMpError(`Los números ${data.takenNumbers.join(', ')} ya no están disponibles. Por favor selecciona otros.`)
+        } else {
+          setMpError(data.error || 'Error al iniciar el pago')
+        }
+        return
+      }
+      // Redirigir a Mercado Pago
+      window.location.href = data.checkoutUrl
+    } catch {
+      setMpError('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setMpLoading(false)
+    }
   }
 
   const copyNumbers = () => {
@@ -198,26 +238,45 @@ Por favor confirmar disponibilidad y metodo de pago.`
             </Card>
           )}
 
-          {/* WhatsApp Button */}
-          {whatsappNumber ? (
+          {/* Error MP */}
+          {mpError && (
+            <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{mpError}</span>
+            </div>
+          )}
+
+          {/* Botón Mercado Pago */}
+          <Button
+            onClick={handleMercadoPago}
+            disabled={!isFormValid || mpLoading}
+            className="w-full bg-[#009ee3] hover:bg-[#0082c0] text-white font-black"
+            size="lg"
+          >
+            {mpLoading ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <CreditCard className="mr-2 h-5 w-5" />
+            )}
+            {mpLoading ? 'Procesando...' : 'Pagar con Mercado Pago'}
+          </Button>
+
+          {/* Botón WhatsApp (secundario) */}
+          {whatsappNumber && (
             <Button
               onClick={handleWhatsAppClick}
               disabled={!isFormValid}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              variant="outline"
+              className="w-full border-green-600 text-green-700 hover:bg-green-50"
               size="lg"
             >
               <MessageCircle className="h-5 w-5 mr-2" />
-              Contactar por WhatsApp
+              Coordinar por WhatsApp
             </Button>
-          ) : (
-            <p className="text-center text-muted-foreground text-sm">
-              El organizador no ha configurado WhatsApp. Contactalo directamente.
-            </p>
           )}
 
           <p className="text-xs text-center text-muted-foreground">
-            Al contactar, el organizador verificara disponibilidad y te indicara como realizar el
-            pago
+            Pago procesado de forma segura por Mercado Pago
           </p>
         </div>
       </DialogContent>
