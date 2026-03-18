@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import type { Raffle, Profile } from '@/lib/types'
+import { getRaffleTheme } from '@/lib/themes'
 import Link from 'next/link'
 
 interface RaffleHeroProps {
@@ -22,6 +23,7 @@ export function RaffleHero({
 }: RaffleHeroProps) {
   const [current, setCurrent] = useState(0)
   const images = raffle.images.length > 0 ? raffle.images : ['/placeholder.svg']
+  const theme = getRaffleTheme(raffle.theme)
 
   // Auto-play
   useEffect(() => {
@@ -34,37 +36,53 @@ export function RaffleHero({
     <div className="w-full">
 
       {/* 1. Barra superior: negocio */}
-      <div className="flex items-center justify-between bg-gray-950 px-4 py-3 sm:px-6">
+      <div
+        className="flex items-center justify-between px-4 py-3 sm:px-6"
+        style={{ backgroundColor: theme.topBar, color: theme.topBarText }}
+      >
         <div className="flex min-w-0 items-center gap-3">
           {profile.logo_url ? (
             <img src={profile.logo_url} alt={profile.business_name}
               className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white/20" />
           ) : (
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 text-sm font-black text-white">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black"
+              style={{ backgroundColor: theme.accentText, color: theme.topBarText }}
+            >
               {profile.business_name?.charAt(0)?.toUpperCase()}
             </div>
           )}
-          <span className="truncate text-sm font-black uppercase tracking-widest text-white sm:text-base">
+          <span className="truncate text-sm font-black uppercase tracking-widest sm:text-base">
             {profile.business_name}
           </span>
         </div>
         <Link href={`/${profile.username}`}
-          className="shrink-0 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-gray-300 transition-all hover:border-white/40 hover:text-white">
+          className="shrink-0 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold opacity-80 transition-all hover:opacity-100"
+          style={{ color: theme.topBarText }}
+        >
           Ver todas →
         </Link>
       </div>
 
       {/* 2. Título e info */}
-      <div className="bg-white px-4 pt-6 pb-4 sm:px-6">
+      <div className="px-4 pt-6 pb-4 sm:px-6" style={{ backgroundColor: theme.titleBg }}>
         <div className="mx-auto max-w-3xl">
-          <h1 className="text-3xl font-black uppercase leading-tight tracking-tight text-gray-950 sm:text-4xl lg:text-5xl break-words">
+          <h1
+            className="text-3xl font-black uppercase leading-tight tracking-tight sm:text-4xl lg:text-5xl break-words"
+            style={{ color: theme.titleText }}
+          >
             {raffle.title}
           </h1>
           {raffle.prize_description && (
-            <p className="mt-2 text-base font-medium text-cyan-600 sm:text-lg break-words">{raffle.prize_description}</p>
+            <p className="mt-2 text-base font-medium sm:text-lg break-words" style={{ color: theme.accentText }}>
+              {raffle.prize_description}
+            </p>
           )}
           {raffle.draw_date && (
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-500">
+            <div
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+              style={{ backgroundColor: `${theme.titleText}15`, color: theme.titleText }}
+            >
               <Calendar className="h-3.5 w-3.5" />
               Sorteo: {new Date(raffle.draw_date).toLocaleDateString('es-CO', {
                 year: 'numeric', month: 'long', day: 'numeric',
@@ -120,18 +138,18 @@ export function RaffleHero({
           <div className="flex-1">
             <div className="mb-2 flex justify-between text-xs font-semibold">
               <span className="text-gray-500">{soldCount.toLocaleString('es-CO')} de {totalNumbers.toLocaleString('es-CO')} vendidos</span>
-              <span className="text-emerald-600">{progress}% vendido</span>
+              <span style={{ color: theme.progressColor }}>{progress}% vendido</span>
             </div>
             <div className="h-3 overflow-hidden rounded-full bg-gray-100 shadow-inner">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-700"
-                style={{ width: `${Math.max(progress, 2)}%` }}
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${Math.max(progress, 2)}%`, backgroundColor: theme.progressColor }}
               />
             </div>
           </div>
           <div className="shrink-0 text-right">
             <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">c/número</p>
-            <p className="text-3xl font-black leading-none text-emerald-600">
+            <p className="text-3xl font-black leading-none" style={{ color: theme.priceColor }}>
               ${raffle.price_per_number.toLocaleString('es-CO')}
             </p>
             <p className="text-[10px] font-bold text-gray-400">{raffle.currency}</p>

@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2, Plus, X, ImageIcon, MessageCircle, Trophy, Pencil, Check } from 'lucide-react'
+import { Loader2, Plus, X, ImageIcon, MessageCircle, Trophy, Pencil, Check, Palette } from 'lucide-react'
 import type { Raffle, AdditionalPrize } from '@/lib/types'
+import { RAFFLE_THEMES } from '@/lib/themes'
 
 interface RaffleFormProps {
   raffle?: Raffle
@@ -42,6 +43,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
     raffle?.additional_prizes || []
   )
   const [prizesTitle, setPrizesTitle] = useState(raffle?.prizes_title || '')
+  const [theme, setTheme] = useState(raffle?.theme || 'default')
   const [newPrizeDescription, setNewPrizeDescription] = useState('')
   const [newPrizeImageUrl, setNewPrizeImageUrl] = useState('')
   const [editingPrizeIndex, setEditingPrizeIndex] = useState<number | null>(null)
@@ -154,6 +156,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
       payment_instructions: paymentInstructions || null,
       additional_prizes: additionalPrizes.length > 0 ? additionalPrizes : null,
       prizes_title: prizesTitle.trim() || null,
+      theme: theme || 'default',
     }
 
     try {
@@ -204,6 +207,82 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+
+      {/* Tema y Estilo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            Tema y Estilo
+          </CardTitle>
+          <CardDescription>
+            Elige la paleta de colores para la página pública de tu rifa
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {RAFFLE_THEMES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTheme(t.id)}
+                className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-center transition-all hover:scale-[1.03] ${
+                  theme === t.id
+                    ? 'border-primary bg-primary/5 shadow-md'
+                    : 'border-border bg-card hover:border-primary/40'
+                }`}
+              >
+                {/* Muestra de colores */}
+                <div className="flex gap-1">
+                  {t.preview.map((color, i) => (
+                    <span
+                      key={i}
+                      className="h-6 w-6 rounded-full border border-black/10 shadow-sm"
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-semibold leading-tight">{t.name}</span>
+                {theme === t.id && (
+                  <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                    ✓
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Vista previa del tema seleccionado */}
+          {(() => {
+            const selected = RAFFLE_THEMES.find((t) => t.id === theme)!
+            return (
+              <div className="mt-4 overflow-hidden rounded-xl border shadow-sm">
+                <div
+                  className="flex items-center justify-between px-4 py-2.5"
+                  style={{ backgroundColor: selected.topBar, color: selected.topBarText }}
+                >
+                  <span className="text-xs font-black uppercase tracking-widest">Tu Negocio</span>
+                  <span className="text-xs opacity-60">Ver todas →</span>
+                </div>
+                <div
+                  className="px-4 py-3"
+                  style={{ backgroundColor: selected.titleBg }}
+                >
+                  <p className="text-base font-black uppercase" style={{ color: selected.titleText }}>Nombre del Bono</p>
+                  <p className="text-xs font-medium" style={{ color: selected.accentText }}>Descripción del premio</p>
+                </div>
+                <div className="bg-white px-4 py-2">
+                  <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
+                    <div className="h-full w-1/3 rounded-full" style={{ backgroundColor: selected.progressColor }} />
+                  </div>
+                  <p className="mt-1 text-xs font-black" style={{ color: selected.priceColor }}>$30.000 COP</p>
+                </div>
+              </div>
+            )
+          })()}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Basic Info */}
         <Card>

@@ -26,6 +26,7 @@ export interface Raffle {
   payment_instructions?: string
   additional_prizes?: AdditionalPrize[]
   prizes_title?: string
+  theme?: string
   created_at: string
   updated_at: string
 }
