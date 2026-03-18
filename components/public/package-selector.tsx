@@ -16,6 +16,31 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
   const mostPopular = sorted.reduce((best, p) => p.discount_percent > best.discount_percent ? p : best, sorted[0])
   const theme = getRaffleTheme(themeId)
 
+  // Variantes de color intercaladas usando la misma paleta del tema
+  const cardVariants = [
+    {
+      bg: theme.topBar,
+      border: 'rgba(255,255,255,0.10)',
+      shadow: '0 4px 12px rgba(0,0,0,0.3)',
+      btnBg: 'rgba(255,255,255,0.13)',
+      btnColor: theme.topBarText,
+    },
+    {
+      bg: `${theme.progressColor}25`,
+      border: `${theme.accentText}45`,
+      shadow: `0 6px 20px ${theme.accentText}25`,
+      btnBg: `${theme.accentText}35`,
+      btnColor: theme.topBarText,
+    },
+    {
+      bg: `${theme.accentText}15`,
+      border: `${theme.accentText}30`,
+      shadow: `0 4px 16px ${theme.accentText}18`,
+      btnBg: `${theme.accentText}20`,
+      btnColor: theme.accentText,
+    },
+  ]
+
   return (
     <section className="mt-10 overflow-hidden rounded-2xl shadow-xl">
       {/* Header */}
@@ -39,17 +64,16 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
           const discountedPrice = Math.round(originalPrice * (1 - pkg.discount_percent / 100))
           const savings = originalPrice - discountedPrice
           const isPopular = pkg.id === mostPopular?.id && pkg.discount_percent > 0
+          const variant = cardVariants[idx % cardVariants.length]
 
           return (
             <div
               key={pkg.id}
               className="relative flex flex-col items-center rounded-2xl px-6 py-8 text-center transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
               style={{
-                backgroundColor: isPopular ? `${theme.progressColor}28` : `${theme.topBar}`,
-                border: isPopular ? `2px solid ${theme.accentText}80` : '2px solid rgba(255,255,255,0.08)',
-                boxShadow: isPopular
-                  ? `0 8px 32px ${theme.accentText}30`
-                  : '0 4px 12px rgba(0,0,0,0.25)',
+                backgroundColor: isPopular ? `${theme.progressColor}30` : variant.bg,
+                border: isPopular ? `2px solid ${theme.accentText}80` : `2px solid ${variant.border}`,
+                boxShadow: isPopular ? `0 8px 32px ${theme.accentText}35` : variant.shadow,
               }}
             >
               {isPopular && (
@@ -100,7 +124,7 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
                 className="mt-6 w-full rounded-xl py-3.5 text-sm font-black uppercase tracking-wide transition-all active:scale-95 hover:opacity-90"
                 style={isPopular
                   ? { backgroundColor: theme.accentText, color: theme.topBar }
-                  : { backgroundColor: 'rgba(255,255,255,0.12)', color: theme.topBarText }
+                  : { backgroundColor: variant.btnBg, color: variant.btnColor }
                 }
               >
                 Comprar Paquete
