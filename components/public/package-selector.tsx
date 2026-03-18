@@ -30,7 +30,10 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
       </div>
 
       {/* Cards */}
-      <div className="grid grid-cols-1 divide-y divide-white/10 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-3 lg:divide-x" style={{ backgroundColor: theme.topBar }}>
+      <div
+        className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3"
+        style={{ backgroundColor: `${theme.topBar}cc` }}
+      >
         {sorted.map((pkg, idx) => {
           const originalPrice = pkg.quantity * pricePerNumber
           const discountedPrice = Math.round(originalPrice * (1 - pkg.discount_percent / 100))
@@ -40,10 +43,13 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
           return (
             <div
               key={pkg.id}
-              className="relative flex flex-col items-center px-6 py-8 text-center transition-transform hover:-translate-y-0.5"
+              className="relative flex flex-col items-center rounded-2xl px-6 py-8 text-center transition-all duration-200 hover:-translate-y-1 hover:shadow-2xl"
               style={{
-                backgroundColor: isPopular ? `${theme.progressColor}22` : `${theme.topBar}`,
-                boxShadow: isPopular ? `inset 0 0 0 2px ${theme.accentText}50` : 'none',
+                backgroundColor: isPopular ? `${theme.progressColor}28` : `${theme.topBar}`,
+                border: isPopular ? `2px solid ${theme.accentText}80` : '2px solid rgba(255,255,255,0.08)',
+                boxShadow: isPopular
+                  ? `0 8px 32px ${theme.accentText}30`
+                  : '0 4px 12px rgba(0,0,0,0.25)',
               }}
             >
               {isPopular && (
