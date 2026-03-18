@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import dynamic from 'next/dynamic'
 import {
   Dialog,
   DialogContent,
@@ -15,13 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
-
-// Cargar el Wallet de MP solo en el cliente (no SSR)
-const MercadoPagoWallet = dynamic(
-  () => import('./mercadopago-wallet').then((m) => m.MercadoPagoWallet),
-  { ssr: false, loading: () => <div className="h-12 animate-pulse rounded-lg bg-gray-100" /> },
-)
+import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle, ArrowLeft, ExternalLink } from 'lucide-react'
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -54,6 +47,7 @@ export function CheckoutModal({
   const [mpLoading, setMpLoading] = useState(false)
   const [mpError, setMpError] = useState<string | null>(null)
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
   const step = preferenceId ? 'payment' : 'form'
 
   const total = selectedNumbers.length * pricePerNumber
@@ -125,6 +119,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
         return
       }
       setPreferenceId(data.preferenceId)
+      setCheckoutUrl(data.checkoutUrl)
     } catch {
       setMpError('Error de conexión. Intenta de nuevo.')
     } finally {
@@ -134,6 +129,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
 
   const handleVolver = () => {
     setPreferenceId(null)
+    setCheckoutUrl(null)
     setMpError(null)
   }
 
@@ -292,20 +288,27 @@ Por favor confirmar disponibilidad y metodo de pago.`
             </>
           )}
 
-          {/* PASO 2: Wallet de Mercado Pago embebido */}
-          {step === 'payment' && preferenceId && (
+          {/* PASO 2: Ir a pagar con Mercado Pago */}
+          {step === 'payment' && preferenceId && checkoutUrl && (
             <>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <p className="mb-1 text-sm font-semibold text-gray-700">Comprador</p>
                 <p className="text-sm text-gray-500">{name} · {phone}{email ? ` · ${email}` : ''}</p>
               </div>
 
-              <div className="min-h-[56px]">
-                <MercadoPagoWallet preferenceId={preferenceId} />
-              </div>
+              <a
+                href={checkoutUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#009ee3] px-6 py-4 text-base font-black text-white hover:bg-[#0082c0] transition-colors"
+              >
+                <CreditCard className="h-5 w-5" />
+                Pagar con Mercado Pago
+                <ExternalLink className="h-4 w-4" />
+              </a>
 
               <p className="text-xs text-center text-muted-foreground">
-                Pago procesado de forma segura por Mercado Pago. Al completar el pago tus números quedan confirmados.
+                Se abrirá la página de Mercado Pago en una nueva pestaña. Al completar el pago tus números quedan confirmados.
               </p>
             </>
           )}
