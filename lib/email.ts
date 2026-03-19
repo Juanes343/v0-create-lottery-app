@@ -1,13 +1,5 @@
 import nodemailer from 'nodemailer'
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-})
-
 interface SendConfirmationEmailParams {
   to: string
   buyerName: string
@@ -114,10 +106,27 @@ export async function sendPurchaseConfirmationEmail({
 </body>
 </html>`
 
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.error('Email error: GMAIL_USER o GMAIL_APP_PASSWORD no están configurados en las variables de entorno')
+    throw new Error('Gmail credentials not configured')
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  })
+
   await transporter.sendMail({
     from: `"${businessName}" <${process.env.GMAIL_USER}>`,
     to,
     subject: `✅ Confirmación de compra — ${raffleName}`,
     html,
   })
+
+  console.log(`Email de confirmación enviado a ${to}`)
 }
