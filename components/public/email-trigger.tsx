@@ -13,11 +13,9 @@ export default function EmailTrigger({ purchaseId }: { purchaseId: string }) {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.ok && !data.skipped) {
-          console.log('Email de confirmación enviado')
-        }
+        console.log('[EmailTrigger] Respuesta del servidor:', data)
       })
-      .catch((err) => console.error('Error al disparar email:', err))
+      .catch((err) => console.error('[EmailTrigger] Error al disparar email:', err))
   }, [purchaseId])
 
   return null
