@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error al crear compra', detail: purchaseError?.message }, { status: 500 })
     }
 
-    // Reservar los números como pending
+    // Reservar los números como pending, vinculados al purchase_id para que la página exitoso los encuentre
     const { error: numbersError } = await supabase.from('sold_numbers').insert(
       selectedNumbers.map((num: number) => ({
         raffle_id: raffleId,
@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
         buyer_phone: buyerPhone.trim(),
         buyer_email: safeEmail,
         status: 'pending',
+        purchase_id: purchase.id,
       })),
     )
 

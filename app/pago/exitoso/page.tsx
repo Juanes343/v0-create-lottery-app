@@ -4,11 +4,13 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendPurchaseConfirmationEmail } from '@/lib/email'
 
 interface Props {
-  searchParams: Promise<{ purchase_id?: string; payment_id?: string }>
+  searchParams: Promise<{ purchase_id?: string; payment_id?: string; collection_status?: string }>
 }
 
 export default async function PagoExitosoPage({ searchParams }: Props) {
-  const { purchase_id } = await searchParams
+  const { purchase_id, collection_status } = await searchParams
+  // MP envía collection_status=approved cuando el pago fue aprobado
+  const mpApproved = collection_status === 'approved'
 
   let rafflePath: string | null = null
   let buyerName: string | null = null
@@ -23,9 +25,10 @@ export default async function PagoExitosoPage({ searchParams }: Props) {
   if (purchase_id) {
     const supabase = createAdminClient()
 
+    // Usar select('*') para evitar errores si alguna columna opcional no existe todavía en la DB
     const { data: purchase } = await supabase
       .from('purchases')
-      .select('buyer_name, buyer_email, raffle_id, total_amount, currency, numbers, status, email_sent')
+      .select('*')
       .eq('id', purchase_id)
       .single()
 
@@ -58,12 +61,13 @@ export default async function PagoExitosoPage({ searchParams }: Props) {
       numbers = soldNums && soldNums.length > 0
         ? soldNums.map((n: { number: number }) => n.number).sort((a, b) => a - b)
         : (purchase.numbers || []).sort((a: number, b: number) => a - b)
-      // Enviar email de confirmación si la compra está completada y no se ha enviado
-      const isCompleted = (purchase as { status?: string }).status === 'completed'
+      // Enviar email si: MP confirmó el pago (collection_status=approved) O la compra ya está completed en DB
+      // Esto evita la race condition donde el webhook llega tarde
+      const isApproved = mpApproved || (purchase as { status?: string }).status === 'completed'
       const emailNotSent = !(purchase as { email_sent?: boolean }).email_sent
       const isRealEmail = purchase.buyer_email && !purchase.buyer_email.includes('@noemail.bonorifa.com')
 
-      if (isCompleted && emailNotSent && isRealEmail && raffleName) {
+      if (isApproved && emailNotSent && isRealEmail && raffleName) {
         try {
           const profile2 = (raffleData?.profiles as unknown as { username: string; business_name: string; whatsapp?: string })
           await sendPurchaseConfirmationEmail({
