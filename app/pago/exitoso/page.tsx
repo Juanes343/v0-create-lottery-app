@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendPurchaseConfirmationEmail } from '@/lib/email'
 
 interface Props {
   searchParams: Promise<{ purchase_id?: string; payment_id?: string }>
@@ -24,7 +25,7 @@ export default async function PagoExitosoPage({ searchParams }: Props) {
 
     const { data: purchase } = await supabase
       .from('purchases')
-      .select('buyer_name, buyer_email, raffle_id, total_amount, currency, numbers')
+      .select('buyer_name, buyer_email, raffle_id, total_amount, currency, numbers, status, email_sent')
       .eq('id', purchase_id)
       .single()
 
@@ -57,7 +58,30 @@ export default async function PagoExitosoPage({ searchParams }: Props) {
       numbers = soldNums && soldNums.length > 0
         ? soldNums.map((n: { number: number }) => n.number).sort((a, b) => a - b)
         : (purchase.numbers || []).sort((a: number, b: number) => a - b)
-    }
+      // Enviar email de confirmación si la compra está completada y no se ha enviado
+      const isCompleted = (purchase as { status?: string }).status === 'completed'
+      const emailNotSent = !(purchase as { email_sent?: boolean }).email_sent
+      const isRealEmail = purchase.buyer_email && !purchase.buyer_email.includes('@noemail.bonorifa.com')
+
+      if (isCompleted && emailNotSent && isRealEmail && raffleName) {
+        try {
+          const profile2 = (raffleData?.profiles as unknown as { username: string; business_name: string; whatsapp?: string })
+          await sendPurchaseConfirmationEmail({
+            to: purchase.buyer_email,
+            buyerName: purchase.buyer_name,
+            raffleName,
+            numbers,
+            totalAmount,
+            currency,
+            rafflePath: rafflePath!,
+            businessName: profile2?.business_name || 'BonoriFa',
+          })
+          // Marcar como enviado para no reenviar en refresh
+          await supabase.from('purchases').update({ email_sent: true }).eq('id', purchase_id)
+        } catch (emailErr) {
+          console.error('Error enviando email de confirmación:', emailErr)
+        }
+      }    }
   }
 
   const numberDigits = numbers.length > 0 ? Math.max(...numbers).toString().length : 5
