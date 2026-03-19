@@ -38,19 +38,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true, reason: 'already_sent' })
     }
 
-    const { data: raffleData } = await supabase
+    const { data: raffleData, error: raffleError } = await supabase
       .from('raffles')
-      .select('slug, title, price_per_number, whatsapp_number, profiles!inner(username, business_name, whatsapp)')
+      .select('id, slug, title, price_per_number, whatsapp_number, user_id')
       .eq('id', purchase.raffle_id)
       .single()
 
-    console.log('[send-purchase-email] raffleData:', raffleData ? { title: raffleData.title, slug: raffleData.slug } : null)
+    console.log('[send-purchase-email] raffleData:', raffleData ? { title: raffleData.title, slug: raffleData.slug } : null, 'error:', raffleError?.message)
 
     if (!raffleData) {
-      return NextResponse.json({ error: 'Rifa no encontrada' }, { status: 404 })
+      return NextResponse.json({ error: 'Rifa no encontrada', detail: raffleError?.message }, { status: 404 })
     }
 
-    const profile = raffleData.profiles as unknown as { username: string; business_name: string; whatsapp?: string }
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('username, business_name, whatsapp')
+      .eq('id', raffleData.user_id)
+      .single()
+
+    console.log('[send-purchase-email] profileData:', profileData ? { username: profileData.username } : null, 'error:', profileError?.message)
+
+    const profile = profileData ?? { username: 'demo', business_name: 'BonoriFa', whatsapp: null }
     const rafflePath = `/${profile.username}/${raffleData.slug}`
 
     // Obtener números desde sold_numbers o desde purchase.numbers
