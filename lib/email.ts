@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { resolve4 } from 'dns/promises'
 
 interface SendConfirmationEmailParams {
   to: string
@@ -111,10 +112,15 @@ export async function sendPurchaseConfirmationEmail({
     throw new Error('Gmail credentials not configured')
   }
 
+  // Resolver smtp.gmail.com a IPv4 para evitar ECONNREFUSED con IPv6
+  const [smtpIp] = await resolve4('smtp.gmail.com')
+  console.log(`Conectando a SMTP Gmail via IPv4: ${smtpIp}`)
+
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: smtpIp,
     port: 465,
     secure: true,
+    tls: { servername: 'smtp.gmail.com', rejectUnauthorized: false },
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
