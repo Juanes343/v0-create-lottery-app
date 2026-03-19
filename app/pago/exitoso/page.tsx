@@ -1,16 +1,14 @@
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendPurchaseConfirmationEmail } from '@/lib/email'
+import EmailTrigger from '@/components/public/email-trigger'
 
 interface Props {
-  searchParams: Promise<{ purchase_id?: string; payment_id?: string; collection_status?: string }>
+  searchParams: Promise<{ purchase_id?: string; payment_id?: string }>
 }
 
 export default async function PagoExitosoPage({ searchParams }: Props) {
-  const { purchase_id, collection_status } = await searchParams
-  // MP envía collection_status=approved cuando el pago fue aprobado
-  const mpApproved = collection_status === 'approved'
+  const { purchase_id } = await searchParams
 
   let rafflePath: string | null = null
   let buyerName: string | null = null
@@ -61,31 +59,7 @@ export default async function PagoExitosoPage({ searchParams }: Props) {
       numbers = soldNums && soldNums.length > 0
         ? soldNums.map((n: { number: number }) => n.number).sort((a, b) => a - b)
         : (purchase.numbers || []).sort((a: number, b: number) => a - b)
-      // Enviar email si: MP confirmó el pago (collection_status=approved) O la compra ya está completed en DB
-      // Esto evita la race condition donde el webhook llega tarde
-      const isApproved = mpApproved || (purchase as { status?: string }).status === 'completed'
-      const emailNotSent = !(purchase as { email_sent?: boolean }).email_sent
-      const isRealEmail = purchase.buyer_email && !purchase.buyer_email.includes('@noemail.bonorifa.com')
-
-      if (isApproved && emailNotSent && isRealEmail && raffleName) {
-        try {
-          const profile2 = (raffleData?.profiles as unknown as { username: string; business_name: string; whatsapp?: string })
-          await sendPurchaseConfirmationEmail({
-            to: purchase.buyer_email,
-            buyerName: purchase.buyer_name,
-            raffleName,
-            numbers,
-            totalAmount,
-            currency,
-            rafflePath: rafflePath!,
-            businessName: profile2?.business_name || 'BonoriFa',
-          })
-          // Marcar como enviado para no reenviar en refresh
-          await supabase.from('purchases').update({ email_sent: true }).eq('id', purchase_id)
-        } catch (emailErr) {
-          console.error('Error enviando email de confirmación:', emailErr)
-        }
-      }    }
+    }
   }
 
   const numberDigits = numbers.length > 0 ? Math.max(...numbers).toString().length : 5
@@ -108,6 +82,9 @@ export default async function PagoExitosoPage({ searchParams }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-12 text-center">
+      {/* Disparar envío de email desde cliente para evitar cortes de streaming */}
+      {purchase_id && <EmailTrigger purchaseId={purchase_id} />}
+
       <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
           <CheckCircle className="h-12 w-12 text-emerald-600" />
