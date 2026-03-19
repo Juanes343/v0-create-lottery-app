@@ -142,18 +142,35 @@ export function NumberGrid({
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       {/* Number Grid */}
       <div className="space-y-4">
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl border border-gray-100 bg-white px-4 py-3 text-center shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Disponibles</p>
+            <p className="mt-0.5 text-xl font-black text-emerald-500">{availableCount.toLocaleString('es-CO')}</p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-white px-4 py-3 text-center shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Vendidos</p>
+            <p className="mt-0.5 text-xl font-black text-rose-400">{soldCount.toLocaleString('es-CO')}</p>
+          </div>
+          <div className="rounded-xl border border-gray-100 bg-white px-4 py-3 text-center shadow-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Seleccionados</p>
+            <p className="mt-0.5 text-xl font-black" style={{ color: theme.progressColor }}>{selectedNumbers.size}</p>
+          </div>
+        </div>
+
         {/* Search and Pagination */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-xs">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar numero..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(0) }}
+              className="pl-10 rounded-xl border-gray-200 bg-white"
             />
           </div>
-          
+
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
               <Button
@@ -161,10 +178,11 @@ export function NumberGrid({
                 size="icon"
                 onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
                 disabled={currentPage === 0}
+                className="rounded-xl"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm">
+              <span className="min-w-[60px] text-center text-sm font-semibold text-gray-600">
                 {currentPage + 1} / {totalPages}
               </span>
               <Button
@@ -172,6 +190,7 @@ export function NumberGrid({
                 size="icon"
                 onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
                 disabled={currentPage === totalPages - 1}
+                className="rounded-xl"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -180,49 +199,58 @@ export function NumberGrid({
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 text-xs">
-          <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-600">
-            <div className="h-3 w-3 rounded border-2 border-gray-300 bg-white" />
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-500 shadow-sm">
+            <span className="h-2.5 w-2.5 rounded-sm border-2 border-gray-300 bg-white" />
             Disponible
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium" style={{ backgroundColor: `${theme.progressColor}18`, color: theme.progressColor }}>
-            <div className="h-3 w-3 rounded" style={{ backgroundColor: theme.progressColor }} />
+          </span>
+          <span className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-semibold shadow-sm"
+            style={{ borderColor: `${theme.progressColor}40`, backgroundColor: `${theme.progressColor}12`, color: theme.progressColor }}>
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: theme.progressColor }} />
             Seleccionado
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 font-medium text-gray-400">
-            <div className="h-3 w-3 rounded bg-rose-300" />
+          </span>
+          <span className="flex items-center gap-1.5 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 font-semibold text-rose-400 shadow-sm">
+            <span className="h-2.5 w-2.5 rounded-sm bg-rose-300" />
             Vendido
-          </div>
+          </span>
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8 md:grid-cols-10">
-          {filteredNumbers.map((num) => {
-            const status = getNumberStatus(num)
-            return (
-              <button
-                key={num}
-                onClick={() => toggleNumber(num)}
-                disabled={status === 'sold'}
-                className={cn(
-                  'aspect-square rounded-lg border-2 text-xs font-bold transition-all duration-150 sm:text-sm',
-                  status === 'available' && 'border-gray-200 bg-white text-gray-700 hover:scale-110 active:scale-95',
-                  status === 'selected' && 'text-white shadow-md scale-105',
-                  status === 'sold' && 'border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed'
-                )}
-                style={status === 'selected' ? { borderColor: theme.progressColor, backgroundColor: theme.progressColor } : undefined}
-              >
-                {num.toString().padStart(numberDigits, '0')}
-              </button>
-            )
-          })}
-        </div>
-
-        {filteredNumbers.length === 0 && (
-          <div className="py-12 text-center text-muted-foreground">
-            No se encontraron numeros
+        <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+          <div className="grid grid-cols-5 gap-1 sm:grid-cols-8 md:grid-cols-10">
+            {filteredNumbers.map((num) => {
+              const status = getNumberStatus(num)
+              return (
+                <button
+                  key={num}
+                  onClick={() => toggleNumber(num)}
+                  disabled={status === 'sold'}
+                  title={status === 'sold' ? 'Número vendido' : `Número ${num.toString().padStart(numberDigits, '0')}`}
+                  className={cn(
+                    'relative flex aspect-square items-center justify-center rounded-lg text-[10px] font-bold transition-all duration-100 sm:text-xs',
+                    status === 'available' && 'border border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-400 hover:bg-white hover:text-gray-900 hover:shadow-sm active:scale-95',
+                    status === 'selected' && 'border-2 text-white shadow-md scale-105 active:scale-95',
+                    status === 'sold' && 'cursor-not-allowed border border-rose-100 bg-rose-50 text-rose-300 line-through'
+                  )}
+                  style={status === 'selected' ? { borderColor: theme.progressColor, backgroundColor: theme.progressColor } : undefined}
+                >
+                  {num.toString().padStart(numberDigits, '0')}
+                  {status === 'sold' && (
+                    <span className="absolute inset-0 flex items-center justify-center rounded-lg pointer-events-none">
+                      <span className="h-px w-4/5 rotate-[-30deg] bg-rose-300 opacity-60" />
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
-        )}
+
+          {filteredNumbers.length === 0 && (
+            <div className="py-12 text-center text-muted-foreground">
+              No se encontraron números
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Cart Sidebar — solo desktop */}
