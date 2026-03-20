@@ -112,7 +112,7 @@ export default async function PublicRafflePage({ params }: Props) {
         progress={progress}
       />
 
-      <main className="mx-auto max-w-3xl px-4 py-8 pb-28 lg:pb-12">
+      <main className="mx-auto max-w-5xl px-4 py-8 pb-12">
 
         {/* Premios adicionales — encima de paquetes */}
         {raffle.additional_prizes && (raffle.additional_prizes as AdditionalPrize[]).length > 0 && (

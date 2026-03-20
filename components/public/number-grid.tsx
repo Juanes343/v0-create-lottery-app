@@ -139,7 +139,7 @@ export function NumberGrid({
 
   return (
     <>
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="space-y-5">
       {/* Number Grid */}
       <div className="space-y-4">
 
@@ -217,7 +217,7 @@ export function NumberGrid({
 
         {/* Grid */}
         <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
-          <div className="grid grid-cols-5 gap-1 sm:grid-cols-8 md:grid-cols-10">
+          <div className="grid grid-cols-8 gap-1 sm:grid-cols-10 md:grid-cols-12">
             {filteredNumbers.map((num) => {
               const status = getNumberStatus(num)
               return (
@@ -253,100 +253,71 @@ export function NumberGrid({
         </div>
       </div>
 
-      {/* Cart Sidebar — solo desktop */}
-      <div className="hidden lg:block lg:sticky lg:top-4 lg:self-start">
+      {/* Carrito — debajo del grid, visible en todos los tamaños */}
+      {selectedNumbers.size > 0 && (
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-          <div className="border-b px-5 py-4" style={{ backgroundColor: theme.topBar }}>
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" style={{ color: theme.topBarText }} />
-              <h3 className="font-black" style={{ color: theme.topBarText }}>Tu Selección</h3>
+          {/* Header */}
+          <div className="flex items-center gap-2 border-b px-5 py-4" style={{ backgroundColor: theme.topBar }}>
+            <ShoppingCart className="h-5 w-5" style={{ color: theme.topBarText }} />
+            <h3 className="font-black" style={{ color: theme.topBarText }}>Tu Selección</h3>
+            <span className="ml-auto rounded-full px-2 py-0.5 text-xs font-black" style={{ backgroundColor: `${theme.topBarText}20`, color: theme.topBarText }}>
+              {selectedNumbers.size} núm.
+            </span>
+          </div>
+
+          <div className="p-5">
+            {/* Números seleccionados */}
+            <div className="mb-4 flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+              {Array.from(selectedNumbers)
+                .sort((a, b) => a - b)
+                .map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => removeNumber(num)}
+                    className="group flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors hover:bg-rose-100 hover:text-rose-600"
+                    style={{ backgroundColor: `${theme.progressColor}18`, color: theme.progressColor }}
+                  >
+                    {num.toString().padStart(numberDigits, '0')}
+                    <X className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                  </button>
+                ))}
+            </div>
+
+            {/* Resumen + botones en fila */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="rounded-xl bg-gray-50 px-4 py-3 flex gap-6">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Números</p>
+                  <p className="text-lg font-black text-gray-800">{selectedNumbers.size}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Precio c/u</p>
+                  <p className="text-lg font-black text-gray-800">${pricePerNumber.toLocaleString('es-CO')}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Total</p>
+                  <p className="text-lg font-black" style={{ color: theme.progressColor }}>${total.toLocaleString('es-CO')} {currency}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 shrink-0">
+                <Button variant="outline" onClick={clearSelection} className="rounded-xl px-4 text-xs">
+                  Limpiar
+                </Button>
+                <Button
+                  className="rounded-xl px-8 py-2.5 font-black text-white hover:opacity-90 shadow-lg"
+                  style={{ backgroundColor: theme.progressColor }}
+                  onClick={() => setIsCheckoutOpen(true)}
+                >
+                  Continuar al Pago →
+                </Button>
+              </div>
             </div>
           </div>
-          <div className="p-5 space-y-4">
-            {selectedNumbers.size === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-8 text-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100">
-                  <ShoppingCart className="h-7 w-7 text-gray-300" />
-                </div>
-                <p className="text-sm font-medium text-gray-400">Selecciona números<br/>para comprar</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto">
-                  {Array.from(selectedNumbers)
-                    .sort((a, b) => a - b)
-                    .map((num) => (
-                      <button
-                        key={num}
-                        onClick={() => removeNumber(num)}
-                        className="group flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-colors hover:bg-rose-100 hover:text-rose-600"
-                        style={{ backgroundColor: `${theme.progressColor}18`, color: theme.progressColor }}
-                      >
-                        {num.toString().padStart(numberDigits, '0')}
-                        <X className="h-3 w-3 opacity-0 group-hover:opacity-100" />
-                      </button>
-                    ))}
-                </div>
-
-                <div className="rounded-xl bg-gray-50 p-3 space-y-2">
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>Números:</span>
-                    <span className="font-semibold text-gray-700">{selectedNumbers.size}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>Precio c/u:</span>
-                    <span className="font-semibold text-gray-700">${pricePerNumber.toLocaleString('es-CO')}</span>
-                  </div>
-                  <div className="border-t pt-2 flex justify-between text-base font-black">
-                    <span>Total:</span>
-                    <span style={{ color: theme.progressColor }}>${total.toLocaleString('es-CO')} {currency}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Button
-                    className="w-full rounded-xl py-5 font-black text-white hover:opacity-90 shadow-lg"
-                    style={{ backgroundColor: theme.progressColor }}
-                    onClick={() => setIsCheckoutOpen(true)}
-                  >
-                    Continuar al Pago
-                  </Button>
-                  <Button variant="outline" onClick={clearSelection} className="w-full rounded-xl text-xs">
-                    Limpiar selección
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
         </div>
-      </div>
+      )}
 
     </div>
-
-    {/* Barra flotante móvil */}
-    {selectedNumbers.size > 0 && (
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-black/10 px-4 py-3 shadow-2xl lg:hidden" style={{ backgroundColor: theme.topBar }}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-black leading-tight" style={{ color: theme.topBarText }}>
-              {selectedNumbers.size} número{selectedNumbers.size !== 1 ? 's' : ''} seleccionado{selectedNumbers.size !== 1 ? 's' : ''}
-            </p>
-            <p className="text-xs font-bold" style={{ color: `${theme.topBarText}99` }}>
-              Total: ${total.toLocaleString('es-CO')} {currency}
-            </p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <Button variant="ghost" size="sm" onClick={clearSelection} className="h-9 px-3 hover:bg-white/10" style={{ color: `${theme.topBarText}99` }}>
-              <X className="h-4 w-4" />
-            </Button>
-            <Button size="sm" onClick={() => setIsCheckoutOpen(true)} className="h-9 gap-1.5 rounded-xl font-black hover:opacity-90" style={{ backgroundColor: theme.accentText, color: theme.topBar }}>
-              <ShoppingCart className="h-4 w-4" />
-              Pagar
-            </Button>
-          </div>
-        </div>
-      </div>
-    )}
 
     <CheckoutModal
       isOpen={isCheckoutOpen}

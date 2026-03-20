@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
   const supabase = await createClient()
 
-  const { data: profile } = await supabase
+  const { data: profile } = await supabase                      
     .from('profiles')
     .select('business_name')
     .eq('username', username)
