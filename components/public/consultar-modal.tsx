@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Loader2, X, Ticket } from 'lucide-react'
+import { Search, Loader2, X, Ticket, Mail, CheckCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface PurchaseResult {
@@ -35,6 +35,9 @@ export function ConsultarModal({
   const [isLoading, setIsLoading] = useState(false)
   const [results, setResults] = useState<PurchaseResult[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
+  const [emailError, setEmailError] = useState<string | null>(null)
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,12 +119,37 @@ export function ConsultarModal({
     }
   }
 
+  const handleSendEmail = async () => {
+    if (!results || results.length === 0) return
+    setSendingEmail(true)
+    setEmailError(null)
+
+    try {
+      // Enviar email de confirmación para cada compra
+      const promises = results.map((p) =>
+        fetch('/api/send-purchase-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ purchase_id: p.id, force: true }),
+        }).then((r) => r.json())
+      )
+      await Promise.all(promises)
+      setEmailSent(true)
+    } catch {
+      setEmailError('Error al enviar el correo. Intenta de nuevo.')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
   const handleClose = () => {
     setOpen(false)
     setEmail('')
     setPhone('')
     setResults(null)
     setError(null)
+    setEmailSent(false)
+    setEmailError(null)
   }
 
   const numberDigits = (nums: number[]) =>
@@ -287,6 +315,38 @@ export function ConsultarModal({
                           </div>
                         )
                       })}
+
+                      {/* Botón enviar al correo */}
+                      {email && (
+                        <div className="mt-4">
+                          {emailSent ? (
+                            <div className="flex items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                              <CheckCircle className="h-4 w-4" />
+                              Enviamos tus números a <span className="font-semibold">{email}</span>
+                            </div>
+                          ) : (
+                            <>
+                              {emailError && (
+                                <div className="mb-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+                                  {emailError}
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={handleSendEmail}
+                                disabled={sendingEmail}
+                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+                              >
+                                {sendingEmail ? (
+                                  <><Loader2 className="h-4 w-4 animate-spin" /> Enviando...</>
+                                ) : (
+                                  <><Mail className="h-4 w-4" /> Enviar a mi correo</>
+                                )}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>

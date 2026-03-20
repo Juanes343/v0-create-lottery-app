@@ -4,8 +4,8 @@ import { sendPurchaseConfirmationEmail } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
-    const { purchase_id } = await req.json()
-    console.log('[send-purchase-email] Recibido purchase_id:', purchase_id)
+    const { purchase_id, force } = await req.json()
+    console.log('[send-purchase-email] Recibido purchase_id:', purchase_id, 'force:', !!force)
 
     if (!purchase_id) {
       return NextResponse.json({ error: 'Falta purchase_id' }, { status: 400 })
@@ -31,9 +31,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true, reason: 'no_real_email' })
     }
 
-    // Solo saltear si ya fue enviado Y el estado sigue completed (para evitar duplicados en refresh)
-    // pero si email_sent es true desde un intento fallido, intentamos de nuevo
-    if (purchase.email_sent && purchase.status === 'completed') {
+    // Solo saltear si ya fue enviado Y no es un reenvío forzado (consultar)
+    if (purchase.email_sent && purchase.status === 'completed' && !force) {
       console.log('[send-purchase-email] Skipping: email_sent=true y status=completed')
       return NextResponse.json({ ok: true, skipped: true, reason: 'already_sent' })
     }
