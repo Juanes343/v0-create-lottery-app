@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Phone, LayoutList, Search } from 'lucide-react'
 import type { Profile } from '@/lib/types'
 import { getRaffleTheme } from '@/lib/themes'
+import { ConsultarModal } from '@/components/public/consultar-modal'
 
 interface RaffleFooterProps {
   profile: Profile
@@ -65,14 +66,12 @@ export function RaffleFooter({ profile, themeId }: RaffleFooterProps) {
               <LayoutList className="h-4 w-4" />
               Ver todas las rifas
             </Link>
-            <Link
-              href="/consultar"
-              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold backdrop-blur-sm transition-colors hover:bg-white/20 active:scale-95"
-              style={{ color: theme.topBarText }}
-            >
-              <Search className="h-4 w-4" />
-              Consultar mis números
-            </Link>
+            <ConsultarModal
+              triggerClassName="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold backdrop-blur-sm transition-colors hover:bg-white/20 active:scale-95"
+              triggerStyle={{ color: theme.topBarText }}
+              triggerIcon={<Search className="h-4 w-4" />}
+              triggerLabel="Consultar mis números"
+            />
           </div>
         </div>
       </div>
