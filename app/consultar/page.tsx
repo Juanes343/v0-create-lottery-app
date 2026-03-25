@@ -80,7 +80,7 @@ export default function ConsultarPage() {
         throw queryError
       }
 
-      setResults(data as PurchaseResult[] || [])
+      setResults(data as unknown as PurchaseResult[] || [])
     } catch (err) {
       console.error('Search error:', err)
       setError('Error al buscar. Por favor intenta de nuevo.')

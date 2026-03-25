@@ -14,10 +14,8 @@ export function MercadoPagoWallet({ preferenceId }: MercadoPagoWalletProps) {
 
   return (
     <Wallet
-      initialization={{ preferenceId, redirectMode: 'modal' }}
-      customization={{
-        texts: { valueProp: 'smart_option' },
-      }}
+      initialization={{ preferenceId, redirectMode: 'blank' }}
+      customization={{}}
     />
   )
 }

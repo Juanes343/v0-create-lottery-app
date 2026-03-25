@@ -220,62 +220,145 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {RAFFLE_THEMES.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTheme(t.id)}
-                className={`relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 text-center transition-all hover:scale-[1.03] ${
-                  theme === t.id
-                    ? 'border-primary bg-primary/5 shadow-md'
-                    : 'border-border bg-card hover:border-primary/40'
-                }`}
-              >
-                {/* Muestra de colores */}
-                <div className="flex gap-1">
-                  {t.preview.map((color, i) => (
-                    <span
-                      key={i}
-                      className="h-6 w-6 rounded-full border border-black/10 shadow-sm"
-                      style={{ backgroundColor: color }}
+          {/* Panel de fondo para que las tarjetas resalten */}
+          <div className="rounded-2xl bg-zinc-950 p-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {RAFFLE_THEMES.map((t) => {
+                const isSelected = theme === t.id
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTheme(t.id)}
+                    style={{
+                      background: t.gradient,
+                      boxShadow: isSelected
+                        ? `0 0 0 2px #18181b, 0 0 0 4px ${t.preview[0]}, 0 16px 40px -8px ${t.preview[0]}99`
+                        : `0 4px 18px -4px ${t.preview[0]}55, inset 0 1px 0 rgba(255,255,255,0.15)`,
+                      transform: isSelected ? 'translateY(-5px) scale(1.04)' : undefined,
+                      transition: 'transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s ease',
+                    }}
+                    className="group relative overflow-hidden rounded-2xl text-left hover:scale-[1.04] hover:-translate-y-1"
+                  >
+                    {/* Brillo superior (simula glossy/3D) */}
+                    <div
+                      className="pointer-events-none absolute inset-0"
+                      style={{
+                        background:
+                          'linear-gradient(160deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.06) 40%, transparent 70%)',
+                      }}
                     />
-                  ))}
-                </div>
-                <span className="text-xs font-semibold leading-tight">{t.name}</span>
-                {theme === t.id && (
-                  <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                    ✓
-                  </span>
-                )}
-              </button>
-            ))}
+                    {/* Sombra interna inferior (profundidad) */}
+                    <div
+                      className="pointer-events-none absolute inset-0 rounded-2xl"
+                      style={{
+                        boxShadow: 'inset 0 -3px 10px rgba(0,0,0,0.35)',
+                      }}
+                    />
+
+                    <div className="relative flex h-[88px] flex-col justify-between p-3">
+                      {/* Nombre + check */}
+                      <div className="flex items-start justify-between gap-1">
+                        <span
+                          className="text-[10px] font-black uppercase leading-tight tracking-wider drop-shadow"
+                          style={{ color: t.topBarText }}
+                        >
+                          {t.name}
+                        </span>
+                        {isSelected && (
+                          <span
+                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black shadow-md"
+                            style={{ backgroundColor: t.topBarText, color: t.topBar }}
+                          >
+                            ✓
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Bandas de color */}
+                      <div className="flex h-2 overflow-hidden rounded-full gap-px">
+                        {t.preview.map((color, i) => (
+                          <span
+                            key={i}
+                            className="flex-1"
+                            style={{ backgroundColor: color, opacity: 0.9 }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
-          {/* Vista previa del tema seleccionado */}
+          {/* Vista previa del tema seleccionado — tarjeta 3D flotante */}
           {(() => {
             const selected = RAFFLE_THEMES.find((t) => t.id === theme)!
             return (
-              <div className="mt-4 overflow-hidden rounded-xl border shadow-sm">
+              <div className="mt-5 flex justify-center">
                 <div
-                  className="flex items-center justify-between px-4 py-2.5"
-                  style={{ backgroundColor: selected.topBar, color: selected.topBarText }}
+                  style={{
+                    perspective: '900px',
+                    width: '100%',
+                    maxWidth: '480px',
+                  }}
                 >
-                  <span className="text-xs font-black uppercase tracking-widest">Tu Negocio</span>
-                  <span className="text-xs opacity-60">Ver todas →</span>
-                </div>
-                <div
-                  className="px-4 py-3"
-                  style={{ backgroundColor: selected.titleBg }}
-                >
-                  <p className="text-base font-black uppercase" style={{ color: selected.titleText }}>Nombre del Bono</p>
-                  <p className="text-xs font-medium" style={{ color: selected.accentText }}>Descripción del premio</p>
-                </div>
-                <div className="bg-white px-4 py-2">
-                  <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full w-1/3 rounded-full" style={{ backgroundColor: selected.progressColor }} />
+                  <div
+                    style={{
+                      transformStyle: 'preserve-3d',
+                      transform: 'rotateX(4deg) rotateY(-2deg)',
+                      boxShadow: `0 24px 60px -12px ${selected.preview[0]}66, 0 8px 20px -4px rgba(0,0,0,0.3)`,
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      transition: 'all 0.4s cubic-bezier(.34,1.56,.64,1)',
+                    }}
+                  >
+                    {/* Barra superior */}
+                    <div
+                      className="flex items-center justify-between px-4 py-2.5"
+                      style={{ backgroundColor: selected.topBar, color: selected.topBarText }}
+                    >
+                      <span className="text-xs font-black uppercase tracking-widest">Tu Negocio</span>
+                      <span className="text-xs opacity-50">Ver todas →</span>
+                    </div>
+
+                    {/* Gradiente decorativo sobre el título */}
+                    <div style={{ background: selected.gradient, padding: '1px 0 0' }} />
+
+                    {/* Sección título */}
+                    <div className="px-4 py-3" style={{ backgroundColor: selected.titleBg }}>
+                      <p className="text-base font-black uppercase" style={{ color: selected.titleText }}>
+                        Nombre del Bono
+                      </p>
+                      <p className="text-xs font-medium" style={{ color: selected.accentText }}>
+                        🏆 Premio increíble
+                      </p>
+                    </div>
+
+                    {/* Progreso + precio */}
+                    <div className="px-4 py-3" style={{ backgroundColor: selected.surface }}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] text-gray-400 font-semibold">340 / 1000 vendidos</span>
+                        <span className="text-[10px] font-bold" style={{ color: selected.progressColor }}>34%</span>
+                      </div>
+                      <div
+                        className="h-2.5 overflow-hidden rounded-full"
+                        style={{ backgroundColor: selected.borderSubtle }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: '34%',
+                            background: selected.gradient,
+                          }}
+                        />
+                      </div>
+                      <p className="mt-2 text-lg font-black leading-none" style={{ color: selected.priceColor }}>
+                        $30.000 <span className="text-[10px] font-semibold opacity-50">COP / número</span>
+                      </p>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs font-black" style={{ color: selected.priceColor }}>$30.000 COP</p>
                 </div>
               </div>
             )

@@ -8,6 +8,7 @@ import { RaffleFooter } from '@/components/public/raffle-footer'
 import { getRaffleTheme } from '@/lib/themes'
 import type { Metadata } from 'next'
 import type { AdditionalPrize } from '@/lib/types'
+import { TiltWrapper } from '@/components/ui/tilt-wrapper'
 
 interface Props {
   params: Promise<{ username: string; slug: string }>
@@ -93,51 +94,88 @@ export default async function PublicRafflePage({ params }: Props) {
   const theme = getRaffleTheme(raffle.theme)
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden w-full max-w-[100vw]">
-
-      {/* Header app */}
-      <header className="w-full bg-[#0f1c2e] px-4 py-3 text-center">
-        <Link href="/">
-          <span className="text-lg font-black uppercase tracking-widest text-white">
-            Bono<span className="text-cyan-400">Rifa</span>
-          </span>
-        </Link>
-      </header>
-
-      <RaffleHero
-        raffle={raffle}
-        profile={profile}
-        soldCount={soldCount}
-        totalNumbers={totalNumbers}
-        progress={progress}
+    <div className="min-h-screen overflow-x-hidden w-full text-zinc-200" style={{ backgroundColor: '#030712' }}>
+      {/* Patrón general de página (Grilla tipo Login) */}
+      <div
+        className="pointer-events-none fixed inset-0 z-0 opacity-40"
+        style={{
+          backgroundImage: `linear-gradient(${theme.accentText}30 1px, transparent 1px), linear-gradient(90deg, ${theme.accentText}30 1px, transparent 1px)`,
+          backgroundSize: '48px 48px',
+          maskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 40%, transparent 100%)'
+        }}
       />
 
-      <main className="mx-auto max-w-5xl px-4 py-8 pb-12">
+      <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Header app — dark premium con glow del tema */}
+        <header
+          className="relative w-full overflow-hidden px-4 py-3 text-center"
+          style={{ backgroundColor: '#080d14', borderBottom: `1px solid ${theme.accentText}15` }}
+        >
+          {/* Grilla de fondo */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage: `linear-gradient(${theme.accentText}0a 1px, transparent 1px), linear-gradient(90deg, ${theme.accentText}0a 1px, transparent 1px)`,
+              backgroundSize: '40px 40px',
+            }}
+          />
+          {/* Glow central */}
+          <div
+            className="pointer-events-none absolute left-1/2 top-0 h-24 w-72 -translate-x-1/2"
+            style={{ background: `radial-gradient(ellipse at top, ${theme.accentText}25 0%, transparent 70%)` }}
+          />
+          <Link href="/" className="relative z-10 inline-block">
+            <span className="text-xl font-black uppercase tracking-widest text-white">
+              Bono<span style={{ color: theme.accentText }}>Rifa</span>
+            </span>
+          </Link>
+        </header>
 
-        {/* Premios adicionales — encima de paquetes */}
-        {raffle.additional_prizes && (raffle.additional_prizes as AdditionalPrize[]).length > 0 && (
-          <div className="mb-10 overflow-hidden rounded-2xl shadow-xl">
-            <div className="px-6 py-5 text-center" style={{ backgroundColor: theme.topBar }}>
-              {raffle.prizes_title && (
-                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.accentText }}>{raffle.prizes_title}</p>
-              )}
-              <h2 className="text-3xl font-black uppercase tracking-tight" style={{ color: theme.topBarText }}>🏆 Premios</h2>
-            </div>
-            <div className="grid gap-px bg-gray-200 sm:grid-cols-2 lg:grid-cols-3">
-              {(raffle.additional_prizes as AdditionalPrize[]).map((prize) => (
-                <div key={prize.position} className="group overflow-hidden bg-white transition-all hover:shadow-md">
-                  {prize.image_url && (
-                    <div className="h-48 w-full overflow-hidden bg-gray-100">
-                      <img src={prize.image_url} alt={prize.description}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    </div>
+        <RaffleHero
+          raffle={raffle}
+          profile={profile}
+          soldCount={soldCount}
+          totalNumbers={totalNumbers}
+          progress={progress}
+        />
+
+        <main className="mx-auto flex-1 w-full max-w-5xl px-4 py-8 pb-12">
+
+          {/* Premios adicionales */}
+          {raffle.additional_prizes && (raffle.additional_prizes as AdditionalPrize[]).length > 0 && (
+            <div className="mb-10 overflow-hidden rounded-2xl shadow-2xl" style={{ backgroundColor: '#080d14', border: `1px solid ${theme.accentText}15` }}>
+              <div className="relative px-6 py-5 text-center" style={{ backgroundColor: '#0a0f18', borderBottom: `1px solid ${theme.accentText}15` }}>
+                <div
+                  className="pointer-events-none absolute left-1/2 top-0 h-full w-full -translate-x-1/2"
+                  style={{ background: `radial-gradient(ellipse at top, ${theme.accentText}15 0%, transparent 60%)` }}
+                />
+                <div className="relative">
+                  {raffle.prizes_title && (
+                    <p className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.accentText }}>{raffle.prizes_title}</p>
                   )}
-                  <div className="border-t-2 p-4" style={{ borderColor: theme.accentText }}>
-                    <p className="text-sm font-bold text-gray-900">{prize.description}</p>
-                  </div>
+                  <h2 className="text-3xl font-black uppercase tracking-tight text-white drop-shadow-sm">🏆 Premios</h2>
                 </div>
-              ))}
-            </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 p-4" style={{ backgroundColor: 'transparent' }}>
+                {(raffle.additional_prizes as AdditionalPrize[]).map((prize) => (
+                  <TiltWrapper key={prize.position} tiltMaxAngleX={8} tiltMaxAngleY={8} transitionSpeed={2000} className="h-full">
+                    <div className="group relative flex h-full flex-col items-center p-6 text-center transition-all rounded-2xl shadow-xl shadow-black/50" style={{ backgroundColor: '#0a0f18', border: `1px solid ${theme.accentText}30` }}>
+                      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" style={{ background: `radial-gradient(circle at center, ${theme.accentText}15 0%, transparent 80%)` }} />
+                      <div className="relative z-10 flex flex-col items-center w-full">
+                        <div className="mb-4 h-36 w-full overflow-hidden rounded-xl shadow-lg" style={{ border: `1px solid ${theme.accentText}40`, backgroundColor: '#050a10' }}>
+                          {prize.image_url ? (
+                            <img src={prize.image_url} alt={prize.description} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-5xl" style={{ color: theme.accentText }}>🎁</div>
+                          )}
+                        </div>
+                        <h3 className="mt-2 text-lg font-black text-white">{prize.description}</h3>
+                      </div>
+                    </div>
+                  </TiltWrapper>
+                ))}
+              </div>
           </div>
         )}
 
@@ -169,6 +207,7 @@ export default async function PublicRafflePage({ params }: Props) {
       </main>
 
       <RaffleFooter profile={profile} themeId={raffle.theme} />
+      </div>
     </div>
   )
 }

@@ -41,6 +41,35 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Dashboard/Auth adaptive colors */
+  --dash-bg: #f1f5f9;
+  --dash-card: #ffffff;
+  --dash-border: rgba(0, 0, 0, 0.08);
+  --dash-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --dash-text: #0f172a;
+  --dash-muted: rgba(15, 23, 42, 0.45);
+  --dash-grid-line: rgba(15, 23, 42, 0.035);
+  --auth-bg: #f0f4f8;
+  --auth-card: #ffffff;
+  --auth-border: rgba(0, 0, 0, 0.1);
+  --auth-text: #0f172a;
+  --auth-muted: rgba(15, 23, 42, 0.5);
+  /* Sidebar adaptive colors */
+  --sb-bg: #ffffff;
+  --sb-border: rgba(0,0,0,0.08);
+  --sb-text: #0f172a;
+  --sb-muted: rgba(15,23,42,0.50);
+  --sb-label: rgba(15,23,42,0.30);
+  --sb-card-bg: rgba(0,0,0,0.04);
+  --sb-card-border: rgba(0,0,0,0.08);
+  --sb-hover: rgba(0,0,0,0.05);
+  --sb-toggle-bg: rgba(0,0,0,0.06);
+  --sb-toggle-border: rgba(0,0,0,0.12);
+  --sb-toggle-color: rgba(15,23,42,0.65);
+  /* Auth toggle button */
+  --auth-toggle-bg: rgba(0,0,0,0.08);
+  --auth-toggle-border: rgba(0,0,0,0.15);
+  --auth-toggle-color: rgba(15,23,42,0.65);
 }
 
 .dark {
@@ -76,6 +105,35 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  /* Dashboard/Auth adaptive colors */
+  --dash-bg: #070c14;
+  --dash-card: #0f1623;
+  --dash-border: rgba(255, 255, 255, 0.08);
+  --dash-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --dash-text: #ffffff;
+  --dash-muted: rgba(255, 255, 255, 0.45);
+  --dash-grid-line: rgba(34, 211, 238, 0.022);
+  --auth-bg: #080d14;
+  --auth-card: #0f1623;
+  --auth-border: rgba(255, 255, 255, 0.08);
+  --auth-text: #ffffff;
+  --auth-muted: rgba(255, 255, 255, 0.4);
+  /* Sidebar adaptive colors */
+  --sb-bg: #070c14;
+  --sb-border: rgba(255,255,255,0.07);
+  --sb-text: rgba(255,255,255,0.85);
+  --sb-muted: rgba(255,255,255,0.45);
+  --sb-label: rgba(255,255,255,0.25);
+  --sb-card-bg: rgba(255,255,255,0.04);
+  --sb-card-border: rgba(255,255,255,0.07);
+  --sb-hover: rgba(255,255,255,0.06);
+  --sb-toggle-bg: rgba(255,255,255,0.07);
+  --sb-toggle-border: rgba(255,255,255,0.12);
+  --sb-toggle-color: rgba(255,255,255,0.7);
+  /* Auth toggle button */
+  --auth-toggle-bg: rgba(255,255,255,0.07);
+  --auth-toggle-border: rgba(255,255,255,0.12);
+  --auth-toggle-color: rgba(255,255,255,0.7);
 }
 
 @theme inline {

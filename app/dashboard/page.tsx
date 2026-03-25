@@ -51,10 +51,10 @@ export default async function DashboardPage() {
   )
 
   const statusConfig = {
-    draft:     { label: 'Borrador',   cls: 'bg-slate-100 text-slate-600 border-slate-200' },
-    active:    { label: 'Activa',     cls: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-    completed: { label: 'Completada', cls: 'bg-blue-100 text-blue-700 border-blue-200' },
-    cancelled: { label: 'Cancelada',  cls: 'bg-red-100 text-red-600 border-red-200' },
+    draft:     { label: 'Borrador',   color: 'rgba(148,163,184,1)', bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.2)' },
+    active:    { label: 'Activa',     color: 'rgba(52,211,153,1)',  bg: 'rgba(52,211,153,0.1)',   border: 'rgba(52,211,153,0.25)' },
+    completed: { label: 'Completada', color: 'rgba(34,211,238,1)',  bg: 'rgba(34,211,238,0.1)',   border: 'rgba(34,211,238,0.2)' },
+    cancelled: { label: 'Cancelada',  color: 'rgba(248,113,113,1)', bg: 'rgba(248,113,113,0.1)',  border: 'rgba(248,113,113,0.2)' },
   }
 
   const stats = [
@@ -63,40 +63,36 @@ export default async function DashboardPage() {
       value: totalRaffles,
       sub: `${activeRaffles} activas`,
       icon: Ticket,
-      gradient: 'from-violet-500 to-purple-600',
-      bg: 'bg-violet-50',
-      iconBg: 'bg-violet-500',
-      textColor: 'text-violet-700',
+      accent: 'rgba(139,92,246,1)',
+      glow: 'rgba(139,92,246,0.12)',
+      border: 'rgba(139,92,246,0.25)',
     },
     {
       label: 'Números Vendidos',
       value: totalSold,
       sub: 'En todas las rifas',
       icon: Users,
-      gradient: 'from-blue-500 to-cyan-500',
-      bg: 'bg-blue-50',
-      iconBg: 'bg-blue-500',
-      textColor: 'text-blue-700',
+      accent: 'rgba(34,211,238,1)',
+      glow: 'rgba(34,211,238,0.1)',
+      border: 'rgba(34,211,238,0.2)',
     },
     {
       label: 'Ingresos Totales',
       value: `$${totalRevenue.toLocaleString('es-CO')}`,
       sub: 'COP',
       icon: DollarSign,
-      gradient: 'from-emerald-500 to-teal-500',
-      bg: 'bg-emerald-50',
-      iconBg: 'bg-emerald-500',
-      textColor: 'text-emerald-700',
+      accent: 'rgba(52,211,153,1)',
+      glow: 'rgba(52,211,153,0.1)',
+      border: 'rgba(52,211,153,0.2)',
     },
     {
       label: 'Tu Enlace',
       value: `/${profile?.username ?? '—'}`,
       sub: 'Comparte con clientes',
       icon: TrendingUp,
-      gradient: 'from-orange-500 to-amber-500',
-      bg: 'bg-orange-50',
-      iconBg: 'bg-orange-500',
-      textColor: 'text-orange-700',
+      accent: 'rgba(251,146,60,1)',
+      glow: 'rgba(251,146,60,0.1)',
+      border: 'rgba(251,146,60,0.2)',
     },
   ]
 
@@ -107,20 +103,24 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="h-5 w-5 text-violet-500" />
-            <span className="text-sm font-medium text-violet-600">Panel de Control</span>
+            <Sparkles className="h-5 w-5" style={{ color: '#22d3ee' }} />
+            <span className="text-sm font-medium" style={{ color: '#22d3ee' }}>Panel de Control</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--dash-text)' }}>
             ¡Hola, {profile?.business_name ?? 'Bienvenido'}! 👋
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-sm" style={{ color: 'var(--dash-muted)' }}>
             Gestiona tus rifas y consulta tus estadísticas en tiempo real
           </p>
         </div>
         <Button
           asChild
           size="lg"
-          className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-200 gap-2"
+          className="gap-2 font-bold uppercase tracking-wide text-white border-0"
+          style={{
+            background: 'linear-gradient(135deg, #0891b2 0%, #6366f1 100%)',
+            boxShadow: '0 0 24px rgba(34,211,238,0.3)',
+          }}
         >
           <Link href="/dashboard/raffles/new">
             <Plus className="h-5 w-5" />
@@ -134,20 +134,32 @@ export default async function DashboardPage() {
         {stats.map((s) => (
           <div
             key={s.label}
-            className={`relative overflow-hidden rounded-2xl border ${s.bg} p-5 shadow-sm`}
+            className="relative overflow-hidden rounded-2xl p-5"
+            style={{
+              backgroundColor: 'var(--dash-card)',
+              border: `1px solid ${s.border}`,
+              boxShadow: 'var(--dash-shadow)',
+            }}
           >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--dash-muted)' }}>
                   {s.label}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 truncate">{s.value}</p>
-                <p className={`text-xs font-medium mt-1 ${s.textColor}`}>{s.sub}</p>
+                <p className="text-2xl font-bold truncate" style={{ color: 'var(--dash-text)' }}>{s.value}</p>
+                <p className="text-xs font-medium mt-1" style={{ color: s.accent }}>{s.sub}</p>
               </div>
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${s.iconBg} text-white shadow-md`}>
-                <s.icon className="h-5 w-5" />
+              <div
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                style={{ backgroundColor: s.glow, border: `1px solid ${s.border}` }}
+              >
+                <s.icon className="h-5 w-5" style={{ color: s.accent }} />
               </div>
             </div>
+            <div
+              className="absolute bottom-0 left-0 right-0 h-0.5 rounded-b-2xl"
+              style={{ background: `linear-gradient(90deg, transparent, ${s.accent}50, transparent)` }}
+            />
           </div>
         ))}
       </div>
@@ -156,42 +168,68 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Link
           href="/dashboard/raffles/new"
-          className="group flex items-center gap-4 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/50 p-5 hover:border-violet-400 hover:bg-violet-50 transition-all"
+          className="group flex items-center gap-4 rounded-2xl p-5 transition-all hover:scale-[1.02]"
+          style={{
+            backgroundColor: 'var(--dash-card)',
+            border: '1px solid rgba(139,92,246,0.25)',
+            boxShadow: 'var(--dash-shadow)',
+          }}
         >
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500 text-white shadow-md group-hover:bg-violet-600 transition-colors">
-            <Plus className="h-6 w-6" />
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #6366f1)', boxShadow: '0 0 20px rgba(139,92,246,0.4)' }}
+          >
+            <Plus className="h-6 w-6 text-white" />
           </div>
           <div>
-            <p className="font-semibold text-gray-900">Crear Rifa</p>
-            <p className="text-sm text-gray-500">Nueva rifa desde cero</p>
+            <p className="font-semibold" style={{ color: 'var(--dash-text)' }}>Crear Rifa</p>
+            <p className="text-sm" style={{ color: 'var(--dash-muted)' }}>Nueva rifa desde cero</p>
           </div>
-          <ArrowRight className="ml-auto h-5 w-5 text-gray-400 group-hover:text-violet-500 transition-colors" />
+          <ArrowRight className="ml-auto h-5 w-5" style={{ color: 'rgba(139,92,246,0.6)' }} />
         </Link>
 
         {profile?.username && (
           <Link
             href={`/${profile.username}`}
             target="_blank"
-            className="group flex items-center gap-4 rounded-2xl border-2 border-dashed border-blue-200 bg-blue-50/50 p-5 hover:border-blue-400 hover:bg-blue-50 transition-all"
+            className="group flex items-center gap-4 rounded-2xl p-5 transition-all hover:scale-[1.02]"
+            style={{
+              backgroundColor: 'var(--dash-card)',
+              border: '1px solid rgba(34,211,238,0.2)',
+              boxShadow: 'var(--dash-shadow)',
+            }}
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-500 text-white shadow-md group-hover:bg-blue-600 transition-colors">
-              <Eye className="h-6 w-6" />
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: 'linear-gradient(135deg, #0891b2, #22d3ee)', boxShadow: '0 0 20px rgba(34,211,238,0.35)' }}
+            >
+              <Eye className="h-6 w-6 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-gray-900">Ver mi Tienda</p>
-              <p className="text-sm text-gray-500">/{profile.username}</p>
+              <p className="font-semibold" style={{ color: 'var(--dash-text)' }}>Ver mi Tienda</p>
+              <p className="text-sm" style={{ color: 'var(--dash-muted)' }}>/{profile.username}</p>
             </div>
-            <ArrowRight className="ml-auto h-5 w-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+            <ArrowRight className="ml-auto h-5 w-5" style={{ color: 'rgba(34,211,238,0.6)' }} />
           </Link>
         )}
 
-        <div className="group flex items-center gap-4 rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/50 p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-md">
-            <Share2 className="h-6 w-6" />
+        <div
+          className="flex items-center gap-4 rounded-2xl p-5"
+          style={{
+            backgroundColor: 'var(--dash-card)',
+            border: '1px solid rgba(52,211,153,0.2)',
+            boxShadow: 'var(--dash-shadow)',
+          }}
+        >
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: 'linear-gradient(135deg, #059669, #34d399)', boxShadow: '0 0 20px rgba(52,211,153,0.35)' }}
+          >
+            <Share2 className="h-6 w-6 text-white" />
           </div>
           <div>
-            <p className="font-semibold text-gray-900">Compartir Enlace</p>
-            <p className="text-sm text-gray-500 truncate">
+            <p className="font-semibold" style={{ color: 'var(--dash-text)' }}>Compartir Enlace</p>
+            <p className="text-sm truncate" style={{ color: 'var(--dash-muted)' }}>
               bonorifa.com/{profile?.username ?? '—'}
             </p>
           </div>
@@ -201,26 +239,43 @@ export default async function DashboardPage() {
       {/* Mis Rifas */}
       <div>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-gray-900">Mis Rifas</h2>
+          <h2 className="text-xl font-bold" style={{ color: 'var(--dash-text)' }}>Mis Rifas</h2>
           {rafflesWithStats.length > 0 && (
-            <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+            <span
+              className="rounded-full px-3 py-1 text-xs font-semibold"
+              style={{ backgroundColor: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)', color: 'rgba(167,139,250,1)' }}
+            >
               {rafflesWithStats.length} total
             </span>
           )}
         </div>
 
         {rafflesWithStats.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 py-16 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100">
-              <Ticket className="h-8 w-8 text-violet-500" />
+          <div
+            className="flex flex-col items-center justify-center rounded-2xl py-16 text-center"
+            style={{
+              backgroundColor: 'var(--dash-card)',
+              border: '1px solid var(--dash-border)',
+              boxShadow: 'var(--dash-shadow)',
+            }}
+          >
+            <div
+              className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.25)' }}
+            >
+              <Ticket className="h-8 w-8" style={{ color: 'rgba(167,139,250,1)' }} />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">No tienes rifas todavía</h3>
-            <p className="text-sm text-gray-500 mb-6 max-w-xs">
+            <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--dash-text)' }}>No tienes rifas todavía</h3>
+            <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--dash-muted)' }}>
               Crea tu primera rifa, personaliza los premios y empieza a vender números hoy.
             </p>
             <Button
               asChild
-              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-200"
+              className="font-bold uppercase tracking-wide text-white border-0"
+              style={{
+                background: 'linear-gradient(135deg, #0891b2 0%, #6366f1 100%)',
+                boxShadow: '0 0 24px rgba(34,211,238,0.25)',
+              }}
             >
               <Link href="/dashboard/raffles/new">
                 <Plus className="mr-2 h-4 w-4" />
@@ -235,56 +290,68 @@ export default async function DashboardPage() {
               return (
                 <div
                   key={raffle.id}
-                  className="group relative flex flex-col rounded-2xl border bg-white shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden"
+                  className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:scale-[1.01]"
+                  style={{
+                    backgroundColor: 'var(--dash-card)',
+                    border: '1px solid var(--dash-border)',
+                    boxShadow: 'var(--dash-shadow)',
+                  }}
                 >
                   {/* Top accent bar */}
                   <div
-                    className={`h-1.5 w-full ${
-                      raffle.status === 'active'
-                        ? 'bg-gradient-to-r from-emerald-400 to-teal-400'
-                        : raffle.status === 'completed'
-                        ? 'bg-gradient-to-r from-blue-400 to-cyan-400'
-                        : 'bg-gradient-to-r from-gray-200 to-gray-300'
-                    }`}
+                    className="h-0.5 w-full"
+                    style={{
+                      background:
+                        raffle.status === 'active'
+                          ? 'linear-gradient(90deg, #34d399, #22d3ee)'
+                          : raffle.status === 'completed'
+                          ? 'linear-gradient(90deg, #22d3ee, #6366f1)'
+                          : 'rgba(255,255,255,0.1)',
+                    }}
                   />
 
                   <div className="flex flex-col flex-1 p-5">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0 mr-3">
-                        <h3 className="font-bold text-gray-900 text-lg leading-tight line-clamp-1">
+                        <h3 className="font-bold text-lg leading-tight line-clamp-1" style={{ color: 'var(--dash-text)' }}>
                           {raffle.title}
                         </h3>
-                        <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">
+                        <p className="text-sm mt-0.5 line-clamp-1" style={{ color: 'var(--dash-muted)' }}>
                           🏆 {raffle.prize_description}
                         </p>
                       </div>
-                      <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cfg.cls}`}>
+                      <span
+                        className="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        style={{ color: cfg.color, backgroundColor: cfg.bg, border: `1px solid ${cfg.border}` }}
+                      >
                         {cfg.label}
                       </span>
                     </div>
 
                     {/* Progress */}
                     <div className="mt-auto space-y-1.5 mb-4">
-                      <div className="flex justify-between text-xs text-gray-500">
+                      <div className="flex justify-between text-xs" style={{ color: 'var(--dash-muted)' }}>
                         <span>Progreso de venta</span>
-                        <span className="font-semibold text-gray-700">{raffle.progress}%</span>
+                        <span className="font-semibold text-white">{raffle.progress}%</span>
                       </div>
-                      <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: 'var(--dash-border)' }}>
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            raffle.status === 'active'
-                              ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
-                              : 'bg-gradient-to-r from-blue-400 to-cyan-500'
-                          }`}
-                          style={{ width: `${raffle.progress}%` }}
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${raffle.progress}%`,
+                            background:
+                              raffle.status === 'active'
+                                ? 'linear-gradient(90deg, #34d399, #22d3ee)'
+                                : 'linear-gradient(90deg, #22d3ee, #6366f1)',
+                          }}
                         />
                       </div>
                       <div className="flex justify-between text-xs">
-                        <span className="text-gray-500">
+                        <span style={{ color: 'var(--dash-muted)' }}>
                           {raffle.sold_count} / {raffle.total_numbers} números
                         </span>
-                        <span className="font-bold text-gray-700">
+                        <span className="font-bold" style={{ color: '#22d3ee' }}>
                           ${raffle.price_per_number.toLocaleString('es-CO')} COP
                         </span>
                       </div>
@@ -294,7 +361,11 @@ export default async function DashboardPage() {
                     <div className="flex gap-2">
                       <Link
                         href={`/dashboard/raffles/${raffle.id}`}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700 transition-colors"
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-white transition-all"
+                        style={{
+                          background: 'linear-gradient(135deg, #7c3aed, #6366f1)',
+                          boxShadow: '0 0 12px rgba(139,92,246,0.3)',
+                        }}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         Gestionar
@@ -303,7 +374,12 @@ export default async function DashboardPage() {
                         <Link
                           href={`/${profile.username}/${raffle.slug}`}
                           target="_blank"
-                          className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+                          className="flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-all"
+                          style={{
+                            backgroundColor: 'var(--dash-border)',
+                            border: '1px solid var(--dash-border)',
+                            color: 'var(--dash-text)',
+                          }}
                         >
                           <Eye className="h-3.5 w-3.5" />
                           Ver
