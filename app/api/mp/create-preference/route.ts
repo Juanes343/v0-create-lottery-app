@@ -9,7 +9,7 @@ const mpClient = new MercadoPagoConfig({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { raffleId, selectedNumbers, buyerName, buyerPhone, buyerEmail } = body
+    const { raffleId, selectedNumbers, buyerName, buyerPhone, buyerEmail, sellerRef } = body
 
     // Validar campos obligatorios
     if (
@@ -64,6 +64,20 @@ export async function POST(req: NextRequest) {
     const totalAmount = raffle.price_per_number * selectedNumbers.length
     const safeEmail = buyerEmail?.trim() || `${buyerPhone.replace(/\D/g, '')}@noemail.bonorifa.com`
 
+    // Validar que el sellerRef sea un UUID válido (evitar injection)
+    let resolvedSellerId: string | null = null
+    if (sellerRef && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sellerRef)) {
+      // Verificar que el vendedor existe y está activo
+      const { data: sellerProfile } = await supabase
+        .from('profiles')
+        .select('id, status, role')
+        .eq('id', sellerRef)
+        .eq('role', 'vendedor')
+        .eq('status', 'active')
+        .single()
+      if (sellerProfile) resolvedSellerId = sellerProfile.id
+    }
+
     // Crear registro de compra en estado pendiente
     const { data: purchase, error: purchaseError } = await supabase
       .from('purchases')
@@ -76,6 +90,7 @@ export async function POST(req: NextRequest) {
         numbers: selectedNumbers,
         status: 'pending',
         payment_method: 'mercadopago',
+        ...(resolvedSellerId ? { seller_id: resolvedSellerId } : {}),
       })
       .select()
       .single()

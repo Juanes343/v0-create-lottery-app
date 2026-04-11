@@ -14,9 +14,10 @@ import {
   Menu,
   X,
   ChevronRight,
+  Users,
 } from 'lucide-react'
 import { useState } from 'react'
-import type { Profile } from '@/lib/types'
+import type { Profile, UserRole } from '@/lib/types'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
 interface DashboardSidebarProps {
@@ -24,16 +25,21 @@ interface DashboardSidebarProps {
   userEmail: string
 }
 
-const navigation = [
-  { name: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard, exact: true },
-  { name: 'Nueva Rifa',   href: '/dashboard/raffles/new',  icon: Plus,            exact: false },
-  { name: 'Configuración',href: '/dashboard/settings',     icon: Settings,        exact: false },
+// Navegación base visible para todos
+const baseNavigation = [
+  { name: 'Dashboard',    href: '/dashboard',              icon: LayoutDashboard, exact: true,  roles: ['master','admin','vendedor','cliente'] },
+  { name: 'Nueva Rifa',   href: '/dashboard/raffles/new',  icon: Plus,            exact: false, roles: ['master','admin'] },
+  { name: 'Vendedores',   href: '/dashboard/vendedores',   icon: Users,           exact: false, roles: ['master','admin'] },
+  { name: 'Configuración',href: '/dashboard/settings',     icon: Settings,        exact: false, roles: ['master','admin'] },
 ]
 
 export function DashboardSidebar({ profile, userEmail }: DashboardSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const role: UserRole = profile?.role ?? 'admin'
+  const navigation = baseNavigation.filter(item => item.roles.includes(role))
 
   const handleLogout = async () => {
     const supabase = createClient()

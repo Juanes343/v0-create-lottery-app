@@ -98,6 +98,11 @@ Por favor confirmar disponibilidad y metodo de pago.`
     setMpLoading(true)
     setMpError(null)
     try {
+      // Leer el seller_ref capturado al entrar por el link del vendedor
+      const sellerRef = typeof window !== 'undefined'
+        ? sessionStorage.getItem('seller_ref') ?? undefined
+        : undefined
+
       const res = await fetch('/api/mp/create-preference', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,6 +112,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
           buyerName: name.trim(),
           buyerPhone: phone.trim(),
           buyerEmail: email.trim() || undefined,
+          sellerRef,
         }),
       })
       const data = await res.json()
