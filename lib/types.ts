@@ -1,9 +1,15 @@
+export type UserRole   = 'master' | 'admin' | 'vendedor' | 'cliente'
+export type UserStatus = 'active' | 'inactive'
+
 export interface Profile {
   id: string
   username: string
   business_name: string
   whatsapp?: string
   logo_url?: string
+  role: UserRole
+  status: UserStatus
+  created_by?: string
   created_at: string
   updated_at: string
 }
@@ -77,4 +83,18 @@ export interface RaffleWithStats extends Raffle {
   sold_count: number
   total_numbers: number
   revenue: number
+}
+
+export interface SellerRaffleAssignment {
+  id: string
+  seller_id: string
+  raffle_id: string
+  assigned_by?: string
+  created_at: string
+  raffle?: Pick<Raffle, 'id' | 'title' | 'slug' | 'status'>
+}
+
+export interface SellerWithAssignments extends Profile {
+  assigned_raffles: SellerRaffleAssignment[]
+  email?: string
 }

@@ -1,10 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { RaffleHero } from '@/components/public/raffle-hero'
 import { NumberGrid } from '@/components/public/number-grid'
 import { PackageSelector } from '@/components/public/package-selector'
 import { RaffleFooter } from '@/components/public/raffle-footer'
+import { SellerRefCapture } from '@/components/public/seller-ref-capture'
 import { getRaffleTheme } from '@/lib/themes'
 import type { Metadata } from 'next'
 import type { AdditionalPrize } from '@/lib/types'
@@ -107,6 +109,11 @@ export default async function PublicRafflePage({ params }: Props) {
       />
 
       <div className="relative z-10 flex min-h-screen flex-col">
+        {/* Capturar ?ref= del vendedor para tracking */}
+        <Suspense fallback={null}>
+          <SellerRefCapture />
+        </Suspense>
+
         {/* Header app — dark premium con glow del tema */}
         <header
           className="relative w-full overflow-hidden px-4 py-3 text-center"
