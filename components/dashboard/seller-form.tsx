@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import {
   Loader2, UserPlus, Save, Eye, EyeOff,
   CheckSquare, Square, Ticket, ShieldCheck, ShieldOff,
-  ShoppingCart, Hash, Link2,
+  ShoppingCart, Hash, Link2, CreditCard,
 } from 'lucide-react'
 import type { Raffle, SellerWithAssignments } from '@/lib/types'
 import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
@@ -22,10 +22,11 @@ interface SellerFormProps {
   availableRaffles: Pick<Raffle, 'id' | 'title' | 'slug' | 'status'>[]
   adminUsername?: string
   siteUrl?: string
-  stats?: { ventas: number; boletos: number }
+  stats?: { ventas: number; boletos: number; comision: number }
+  mpConnected?: boolean
 }
 
-export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminUsername, siteUrl = '', stats }: SellerFormProps) {
+export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminUsername, siteUrl = '', stats, mpConnected }: SellerFormProps) {
   const router = useRouter()
   const isEdit = mode === 'edit'
 
@@ -134,7 +135,7 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ---- Estadísticas de ventas (solo edición) ---- */}
       {isEdit && stats && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl p-5" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)' }}>
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--dash-muted)' }}>Ventas</p>
@@ -149,6 +150,46 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
             </div>
             <p className="mt-2 text-3xl font-black" style={{ color: '#22d3ee' }}>{stats.boletos}</p>
           </div>
+          <div className="rounded-2xl p-5" style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)' }}>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--dash-muted)' }}>Comisión generada</p>
+              <CreditCard className="h-4 w-4" style={{ color: 'rgba(167,139,250,1)' }} />
+            </div>
+            <p className="mt-2 text-3xl font-black" style={{ color: 'rgba(167,139,250,1)' }}>
+              ${stats.comision.toLocaleString('es-CO')}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Estado de conexión con Mercado Pago (solo edición) ---- */}
+      {isEdit && (
+        <div
+          className="flex items-center justify-between gap-4 rounded-2xl p-5"
+          style={{ background: 'var(--dash-card)', border: '1px solid var(--dash-border)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: '#009ee3' }}>
+              <CreditCard className="h-4.5 w-4.5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--dash-text)' }}>Cuenta de Mercado Pago</p>
+              <p className="text-xs" style={{ color: 'var(--dash-muted)' }}>
+                {mpConnected
+                  ? 'El vendedor conectó su cuenta — puede cobrar directo con comisión automática.'
+                  : 'El vendedor aún no ha conectado su propia cuenta de Mercado Pago.'}
+              </p>
+            </div>
+          </div>
+          <Badge
+            variant="outline"
+            style={mpConnected
+              ? { borderColor: 'rgba(0,158,227,0.4)', color: '#009ee3', background: 'rgba(0,158,227,0.08)' }
+              : { borderColor: 'var(--dash-border)', color: 'var(--dash-muted)' }
+            }
+          >
+            {mpConnected ? 'Conectada' : 'Sin conectar'}
+          </Badge>
         </div>
       )}
 

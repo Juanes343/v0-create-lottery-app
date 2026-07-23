@@ -62,14 +62,22 @@ export default async function EditarVendedorPage({ params }: Props) {
   // Ventas y boletos vendidos por este vendedor (compras completadas via su enlace)
   const { data: sellerPurchases } = await supabase
     .from('purchases')
-    .select('numbers')
+    .select('numbers, vendor_commission_amount')
     .eq('seller_id', sellerId)
     .eq('status', 'completed')
 
   const sellerStats = {
     ventas: sellerPurchases?.length ?? 0,
     boletos: (sellerPurchases ?? []).reduce((acc: number, p: { numbers: number[] }) => acc + (p.numbers?.length ?? 0), 0),
+    comision: (sellerPurchases ?? []).reduce((acc: number, p: { vendor_commission_amount?: number }) => acc + (p.vendor_commission_amount ?? 0), 0),
   }
+
+  // ¿El vendedor tiene su cuenta de Mercado Pago conectada?
+  const { data: mpAccount } = await adminClientInPage
+    .from('seller_mp_accounts')
+    .select('mp_user_id, connected_at')
+    .eq('seller_id', sellerId)
+    .single()
 
   const sellerWithAssignments: SellerWithAssignments = {
     ...seller,
@@ -133,6 +141,7 @@ export default async function EditarVendedorPage({ params }: Props) {
         adminUsername={profile.username}
         siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ''}
         stats={sellerStats}
+        mpConnected={!!mpAccount}
       />
     </div>
   )

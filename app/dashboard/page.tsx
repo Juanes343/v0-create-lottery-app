@@ -7,9 +7,11 @@ import {
   Eye, Pencil, ArrowRight, Share2, Sparkles,
   ShoppingCart, Hash,
 } from 'lucide-react'
+import { Suspense } from 'react'
 import type { Raffle } from '@/lib/types'
 import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
 import { VendorRaffleCard } from '@/components/dashboard/vendor-raffle-card'
+import { MpConnectCard } from '@/components/dashboard/mp-connect-card'
 
 interface Purchase {
   id: string
@@ -218,6 +220,13 @@ export default async function DashboardPage() {
           </Button>
         )}
       </div>
+
+      {/* Conexión Mercado Pago (solo vendedor) */}
+      {isVendedor && (
+        <Suspense fallback={null}>
+          <MpConnectCard />
+        </Suspense>
+      )}
 
       {/* Stats */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

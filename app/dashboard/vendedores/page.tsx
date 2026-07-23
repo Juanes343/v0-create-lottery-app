@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Users, UserPlus, ShieldCheck, ShieldOff,
-  Ticket, MoreVertical, ArrowRight, ShoppingCart, Hash,
+  Ticket, MoreVertical, ArrowRight, ShoppingCart, Hash, CreditCard,
 } from 'lucide-react'
 import type { Raffle } from '@/lib/types'
 import { SellerActions } from '@/components/dashboard/seller-actions'
@@ -51,17 +52,28 @@ export default async function VendedoresPage() {
   const { data: sellerPurchases } = sellerIds.length > 0
     ? await supabase
         .from('purchases')
-        .select('seller_id, numbers, status')
+        .select('seller_id, numbers, status, vendor_commission_amount')
         .in('seller_id', sellerIds)
         .eq('status', 'completed')
     : { data: [] }
 
-  const salesBySeller: Record<string, { ventas: number; boletos: number }> = {}
-  for (const p of (sellerPurchases ?? []) as { seller_id: string; numbers: number[] }[]) {
-    if (!salesBySeller[p.seller_id]) salesBySeller[p.seller_id] = { ventas: 0, boletos: 0 }
+  const salesBySeller: Record<string, { ventas: number; boletos: number; comision: number }> = {}
+  for (const p of (sellerPurchases ?? []) as { seller_id: string; numbers: number[]; vendor_commission_amount?: number }[]) {
+    if (!salesBySeller[p.seller_id]) salesBySeller[p.seller_id] = { ventas: 0, boletos: 0, comision: 0 }
     salesBySeller[p.seller_id].ventas += 1
     salesBySeller[p.seller_id].boletos += p.numbers?.length ?? 0
+    salesBySeller[p.seller_id].comision += p.vendor_commission_amount ?? 0
   }
+
+  // Estado de conexión de Mercado Pago de cada vendedor (tabla solo accesible con service_role)
+  const adminClient = createAdminClient()
+  const { data: mpAccounts } = sellerIds.length > 0
+    ? await adminClient
+        .from('seller_mp_accounts')
+        .select('seller_id')
+        .in('seller_id', sellerIds)
+    : { data: [] }
+  const mpConnectedSet = new Set((mpAccounts ?? []).map((a: { seller_id: string }) => a.seller_id))
 
   // Estadísticas rápidas
   const total    = sellers?.length ?? 0
@@ -197,9 +209,20 @@ export default async function VendedoresPage() {
                         >
                           Vendedor
                         </Badge>
+                        <Badge
+                          variant="outline"
+                          className="flex items-center gap-1"
+                          style={mpConnectedSet.has(seller.id)
+                            ? { borderColor:'rgba(0,158,227,0.4)', color:'#009ee3', background:'rgba(0,158,227,0.08)' }
+                            : { borderColor:'var(--dash-border)', color:'var(--dash-muted)', background:'transparent' }
+                          }
+                        >
+                          <CreditCard className="h-3 w-3" />
+                          {mpConnectedSet.has(seller.id) ? 'MP conectado' : 'MP sin conectar'}
+                        </Badge>
                       </div>
 
-                      {/* Ventas y boletos vendidos */}
+                      {/* Ventas, boletos y comisión */}
                       <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs">
                         <span className="flex items-center gap-1" style={{ color: 'rgba(52,211,153,1)' }}>
                           <ShoppingCart className="h-3 w-3" />
@@ -209,6 +232,11 @@ export default async function VendedoresPage() {
                           <Hash className="h-3 w-3" />
                           <strong>{sellerStats.boletos}</strong> boleto{sellerStats.boletos !== 1 ? 's' : ''} vendido{sellerStats.boletos !== 1 ? 's' : ''}
                         </span>
+                        {sellerStats.comision > 0 && (
+                          <span className="flex items-center gap-1" style={{ color: 'rgba(167,139,250,1)' }}>
+                            <strong>${sellerStats.comision.toLocaleString('es-CO')}</strong> COP comisión
+                          </span>
+                        )}
                       </div>
 
                       {/* Rifas asignadas + enlace de venta por vendedor */}

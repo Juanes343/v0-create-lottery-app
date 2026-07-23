@@ -26,6 +26,7 @@ export interface Raffle {
   number_range_end: number
   price_per_number: number
   min_purchase_quantity?: number
+  vendor_commission_percent?: number
   currency: string
   status: 'draft' | 'active' | 'completed' | 'cancelled'
   draw_date?: string
@@ -78,6 +79,8 @@ export interface Purchase {
   numbers: number[]
   total_amount: number
   amount_paid?: number
+  vendor_commission_amount?: number
+  mp_split_applied?: boolean
   currency: string
   status: PurchaseStatus
   payment_method?: string

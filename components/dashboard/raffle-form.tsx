@@ -35,6 +35,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
   const [numberRangeEnd, setNumberRangeEnd] = useState(raffle?.number_range_end || 99999)
   const [pricePerNumber, setPricePerNumber] = useState(raffle?.price_per_number || 2000)
   const [minPurchaseQuantity, setMinPurchaseQuantity] = useState(raffle?.min_purchase_quantity ?? 0)
+  const [vendorCommissionPercent, setVendorCommissionPercent] = useState(raffle?.vendor_commission_percent ?? 0)
   const [currency] = useState(raffle?.currency || 'COP')
   const [status, setStatus] = useState(raffle?.status || 'draft')
   const [drawDate, setDrawDate] = useState(raffle?.draw_date || '')
@@ -151,6 +152,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
       number_range_end: numberRangeEnd,
       price_per_number: pricePerNumber,
       min_purchase_quantity: minPurchaseQuantity,
+      vendor_commission_percent: vendorCommissionPercent,
       currency,
       status,
       draw_date: drawDate || null,
@@ -519,6 +521,24 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
                 {minPurchaseQuantity > 0
                   ? `Las ventas manuales exigirán al menos ${minPurchaseQuantity} número${minPurchaseQuantity !== 1 ? 's' : ''} por venta.`
                   : '0 = sin mínimo, se puede vender cualquier cantidad.'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="vendor-commission">Comisión del vendedor (%)</Label>
+              <Input
+                id="vendor-commission"
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                value={vendorCommissionPercent}
+                onChange={(e) => setVendorCommissionPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+              />
+              <p className="text-xs text-muted-foreground">
+                {vendorCommissionPercent > 0
+                  ? `Si el vendedor tiene su cuenta de Mercado Pago conectada, el ${vendorCommissionPercent}% de cada venta por MP se acredita automáticamente a tu cuenta y el resto queda directo en la del vendedor.`
+                  : '0 = sin comisión configurada.'}
               </p>
             </div>
 
