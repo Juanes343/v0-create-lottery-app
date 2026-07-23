@@ -166,6 +166,8 @@ export default async function DashboardPage() {
   const purchaseStatusConfig: Record<string, { label: string; color: string; bg: string; border: string; icon: string }> = {
     completed: { label: 'Pagado',    color: 'rgba(52,211,153,1)',  bg: 'rgba(52,211,153,0.1)',   border: 'rgba(52,211,153,0.25)',  icon: 'check'  },
     pending:   { label: 'Pendiente', color: 'rgba(251,191,36,1)',  bg: 'rgba(251,191,36,0.1)',   border: 'rgba(251,191,36,0.25)',  icon: 'clock'  },
+    reserved:  { label: 'Separado',  color: 'rgba(251,191,36,1)',  bg: 'rgba(251,191,36,0.1)',   border: 'rgba(251,191,36,0.25)',  icon: 'clock'  },
+    partial:   { label: 'Abonado',   color: 'rgba(167,139,250,1)', bg: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.25)',  icon: 'clock'  },
     failed:    { label: 'Fallido',   color: 'rgba(248,113,113,1)', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.2)',  icon: 'x'      },
   }
 
@@ -324,6 +326,7 @@ export default async function DashboardPage() {
                   purchases={vendorPurchases.filter((p) => p.raffle_id === raffle.id)}
                   publicUrl={publicUrl}
                   fullPublicUrl={fullPublicUrl}
+                  sellerId={user?.id}
                 />
               )
             })}

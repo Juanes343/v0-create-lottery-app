@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
 import { ExternalLink, Copy, Users } from 'lucide-react'
 import { SoldNumbersList } from '@/components/dashboard/sold-numbers-list'
+import { ManualSaleModal } from '@/components/dashboard/manual-sale-modal'
 
 export default async function RaffleDetailPage({
   params,
@@ -78,6 +79,17 @@ export default async function RaffleDetailPage({
           <p className="text-muted-foreground">{raffle.prize_description}</p>
         </div>
         <div className="flex gap-2">
+          <ManualSaleModal
+            raffle={{
+              id: raffle.id,
+              title: raffle.title,
+              price_per_number: raffle.price_per_number,
+              currency: raffle.currency,
+              number_range_start: raffle.number_range_start,
+              number_range_end: raffle.number_range_end,
+              min_purchase_quantity: raffle.min_purchase_quantity,
+            }}
+          />
           <Button variant="outline" asChild>
             <Link href={publicUrl} target="_blank">
               <ExternalLink className="mr-2 h-4 w-4" />

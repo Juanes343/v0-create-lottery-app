@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Users, UserPlus, ShieldCheck, ShieldOff,
-  Ticket, MoreVertical, ArrowRight,
+  Ticket, MoreVertical, ArrowRight, ShoppingCart, Hash,
 } from 'lucide-react'
 import type { Raffle } from '@/lib/types'
 import { SellerActions } from '@/components/dashboard/seller-actions'
+import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
 
 export default async function VendedoresPage() {
   const supabase = await createClient()
@@ -17,7 +18,7 @@ export default async function VendedoresPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('username, role')
     .eq('id', user.id)
     .single()
 
@@ -25,6 +26,9 @@ export default async function VendedoresPage() {
   if (!profile || !['admin', 'master'].includes(profile.role ?? 'admin')) {
     notFound()
   }
+
+  const adminUsername = profile.username
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
 
   // Obtener todos los vendedores creados por este admin
   const { data: sellers } = await supabase
@@ -39,9 +43,25 @@ export default async function VendedoresPage() {
   const { data: assignments } = sellerIds.length > 0
     ? await supabase
         .from('seller_raffle_assignments')
-        .select('seller_id, raffle_id, raffles(id, title, status)')
+        .select('seller_id, raffle_id, raffles(id, title, slug, status)')
         .in('seller_id', sellerIds)
     : { data: [] }
+
+  // Ventas y boletos vendidos por cada vendedor (compras completadas via su enlace)
+  const { data: sellerPurchases } = sellerIds.length > 0
+    ? await supabase
+        .from('purchases')
+        .select('seller_id, numbers, status')
+        .in('seller_id', sellerIds)
+        .eq('status', 'completed')
+    : { data: [] }
+
+  const salesBySeller: Record<string, { ventas: number; boletos: number }> = {}
+  for (const p of (sellerPurchases ?? []) as { seller_id: string; numbers: number[] }[]) {
+    if (!salesBySeller[p.seller_id]) salesBySeller[p.seller_id] = { ventas: 0, boletos: 0 }
+    salesBySeller[p.seller_id].ventas += 1
+    salesBySeller[p.seller_id].boletos += p.numbers?.length ?? 0
+  }
 
   // Estadísticas rápidas
   const total    = sellers?.length ?? 0
@@ -136,6 +156,7 @@ export default async function VendedoresPage() {
                 (a: { seller_id: string }) => a.seller_id === seller.id
               )
               const isActive = seller.status === 'active'
+              const sellerStats = salesBySeller[seller.id] ?? { ventas: 0, boletos: 0 }
 
               return (
                 <div
@@ -178,28 +199,46 @@ export default async function VendedoresPage() {
                         </Badge>
                       </div>
 
-                      {/* Rifas asignadas */}
-                      <div className="mt-1 flex flex-wrap gap-1.5">
+                      {/* Ventas y boletos vendidos */}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs">
+                        <span className="flex items-center gap-1" style={{ color: 'rgba(52,211,153,1)' }}>
+                          <ShoppingCart className="h-3 w-3" />
+                          <strong>{sellerStats.ventas}</strong> venta{sellerStats.ventas !== 1 ? 's' : ''}
+                        </span>
+                        <span className="flex items-center gap-1" style={{ color: '#22d3ee' }}>
+                          <Hash className="h-3 w-3" />
+                          <strong>{sellerStats.boletos}</strong> boleto{sellerStats.boletos !== 1 ? 's' : ''} vendido{sellerStats.boletos !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+
+                      {/* Rifas asignadas + enlace de venta por vendedor */}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         {sellerAssignments.length === 0 ? (
                           <span className="text-xs" style={{ color: 'var(--dash-muted)' }}>
                             Sin rifas asignadas
                           </span>
                         ) : (
-                          sellerAssignments.slice(0, 3).map((a: { raffle_id: string; raffles?: { title: string } | null }) => (
-                            <span
-                              key={a.raffle_id}
-                              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
-                              style={{ background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', color:'#22d3ee' }}
-                            >
-                              <Ticket className="h-3 w-3" />
-                              {(a.raffles as { title: string } | null)?.title ?? 'Rifa'}
-                            </span>
-                          ))
-                        )}
-                        {sellerAssignments.length > 3 && (
-                          <span className="rounded-full px-2 py-0.5 text-xs" style={{ background:'rgba(34,211,238,0.08)', color:'#22d3ee' }}>
-                            +{sellerAssignments.length - 3} más
-                          </span>
+                          sellerAssignments.map((a: { raffle_id: string; raffles?: { title: string; slug: string } | null }) => {
+                            const raffle = a.raffles as { title: string; slug: string } | null
+                            const refLink = raffle?.slug && adminUsername
+                              ? `${siteUrl}/${adminUsername}/${raffle.slug}?ref=${seller.id}`
+                              : ''
+                            return (
+                              <span
+                                key={a.raffle_id}
+                                className="flex items-center gap-1 rounded-full pl-2 pr-1 py-0.5 text-xs"
+                                style={{ background:'rgba(34,211,238,0.08)', border:'1px solid rgba(34,211,238,0.2)', color:'#22d3ee' }}
+                              >
+                                <Ticket className="h-3 w-3" />
+                                {raffle?.title ?? 'Rifa'}
+                                {refLink && (
+                                  <span className="scale-[0.7] -mx-1">
+                                    <CopyLinkButton url={refLink} />
+                                  </span>
+                                )}
+                              </span>
+                            )
+                          })
                         )}
                       </div>
                     </div>

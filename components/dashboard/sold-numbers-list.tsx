@@ -11,6 +11,14 @@ interface SoldNumbersListProps {
   numbers: SoldNumber[]
 }
 
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  paid:      { label: 'Vendido',  className: 'border-emerald-300 bg-emerald-50 text-emerald-700' },
+  reserved:  { label: 'Separado', className: 'border-amber-300 bg-amber-50 text-amber-700' },
+  partial:   { label: 'Abonado',  className: 'border-violet-300 bg-violet-50 text-violet-700' },
+  pending:   { label: 'Pendiente', className: 'border-slate-300 bg-slate-50 text-slate-600' },
+  cancelled: { label: 'Cancelado', className: 'border-slate-300 bg-slate-50 text-slate-600' },
+}
+
 export function SoldNumbersList({ numbers }: SoldNumbersListProps) {
   const [search, setSearch] = useState('')
 
@@ -48,29 +56,38 @@ export function SoldNumbersList({ numbers }: SoldNumbersListProps) {
       </div>
 
       <div className="rounded-lg border">
-        <div className="grid grid-cols-4 gap-4 border-b bg-muted/50 px-4 py-3 text-sm font-medium">
+        <div className="grid grid-cols-5 gap-4 border-b bg-muted/50 px-4 py-3 text-sm font-medium">
           <div>Numero</div>
           <div>Comprador</div>
           <div>Email</div>
+          <div>Estado</div>
           <div>Fecha</div>
         </div>
         <div className="divide-y">
-          {filteredNumbers.map((number) => (
-            <div key={number.id} className="grid grid-cols-4 gap-4 px-4 py-3 text-sm">
-              <div>
-                <Badge variant="outline" className="font-mono">
-                  {number.number.toString().padStart(5, '0')}
-                </Badge>
+          {filteredNumbers.map((number) => {
+            const cfg = STATUS_CONFIG[number.status ?? 'paid'] ?? STATUS_CONFIG.paid
+            return (
+              <div key={number.id} className="grid grid-cols-5 gap-4 px-4 py-3 text-sm">
+                <div>
+                  <Badge variant="outline" className="font-mono">
+                    {number.number.toString().padStart(5, '0')}
+                  </Badge>
+                </div>
+                <div className="truncate">{number.buyer_name}</div>
+                <div className="truncate text-muted-foreground">
+                  {number.buyer_email}
+                </div>
+                <div>
+                  <Badge variant="outline" className={cfg.className}>
+                    {cfg.label}
+                  </Badge>
+                </div>
+                <div className="text-muted-foreground">
+                  {new Date(number.created_at).toLocaleDateString('es-CO')}
+                </div>
               </div>
-              <div className="truncate">{number.buyer_name}</div>
-              <div className="truncate text-muted-foreground">
-                {number.buyer_email}
-              </div>
-              <div className="text-muted-foreground">
-                {new Date(number.created_at).toLocaleDateString('es-CO')}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

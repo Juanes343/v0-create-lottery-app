@@ -24,10 +24,9 @@ export async function GET(req: NextRequest) {
 
   const { data } = await adminClient
     .from('sold_numbers')
-    .select('number')
+    .select('number, status')
     .eq('raffle_id', raffleId)
     .in('number', numbers)
-    .eq('status', 'paid')
 
   const takenNumbers = (data ?? []).map((row: { number: number }) => row.number)
 

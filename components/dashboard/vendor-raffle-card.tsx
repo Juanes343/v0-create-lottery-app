@@ -23,6 +23,7 @@ interface RaffleStats {
   number_range_start: number
   number_range_end: number
   currency?: string
+  min_purchase_quantity?: number
 }
 
 interface PurchaseItem {
@@ -45,11 +46,14 @@ interface VendorRaffleCardProps {
   purchases: PurchaseItem[]
   publicUrl: string
   fullPublicUrl: string
+  sellerId?: string
 }
 
 const purchaseStatusConfig: Record<string, { label: string; color: string; bg: string; border: string; icon: 'check' | 'clock' | 'x' }> = {
   completed: { label: 'Pagado',    color: 'rgba(52,211,153,1)',  bg: 'rgba(52,211,153,0.1)',   border: 'rgba(52,211,153,0.25)',  icon: 'check' },
   pending:   { label: 'Pendiente', color: 'rgba(251,191,36,1)',  bg: 'rgba(251,191,36,0.1)',   border: 'rgba(251,191,36,0.25)',  icon: 'clock' },
+  reserved:  { label: 'Separado',  color: 'rgba(251,191,36,1)',  bg: 'rgba(251,191,36,0.1)',   border: 'rgba(251,191,36,0.25)',  icon: 'clock' },
+  partial:   { label: 'Abonado',   color: 'rgba(167,139,250,1)', bg: 'rgba(139,92,246,0.1)',  border: 'rgba(139,92,246,0.25)',  icon: 'clock' },
   failed:    { label: 'Fallido',   color: 'rgba(248,113,113,1)', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.2)',  icon: 'x'     },
 }
 
@@ -224,7 +228,7 @@ function PurchaseGroup({
   )
 }
 
-export function VendorRaffleCard({ raffle, purchases, publicUrl, fullPublicUrl }: VendorRaffleCardProps) {
+export function VendorRaffleCard({ raffle, purchases, publicUrl, fullPublicUrl, sellerId }: VendorRaffleCardProps) {
   const [open, setOpen] = useState(false)
   const cfg = statusConfig[raffle.status] ?? statusConfig.draft
 
@@ -326,7 +330,9 @@ export function VendorRaffleCard({ raffle, purchases, publicUrl, fullPublicUrl }
               currency: raffle.currency,
               number_range_start: raffle.number_range_start,
               number_range_end: raffle.number_range_end,
+              min_purchase_quantity: raffle.min_purchase_quantity,
             }}
+            sellerId={sellerId}
           />
 
           {/* Ventas toggle */}

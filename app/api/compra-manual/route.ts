@@ -32,6 +32,8 @@ export async function POST(req: NextRequest) {
       buyerEmail,
       numbers,
       paymentMethod,
+      saleStatus = 'vendido', // 'vendido' | 'separado' | 'abonado'
+      amountPaid,
     } = body
 
     // Validaciones básicas
@@ -47,15 +49,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Método de pago no válido' }, { status: 400 })
     }
 
+    const validSaleStatuses = ['vendido', 'separado', 'abonado']
+    if (!validSaleStatuses.includes(saleStatus)) {
+      return NextResponse.json({ error: 'Estado de venta no válido' }, { status: 400 })
+    }
+
+    // Mapear estado en español (UI) a valores internos de la BD
+    const saleStatusMap: Record<string, string> = {
+      vendido: 'completed',
+      separado: 'reserved',
+      abonado: 'partial',
+    }
+    const dbSaleStatus = saleStatusMap[saleStatus]
+
     // Obtener la rifa
     const { data: raffle, error: raffleError } = await adminClient
       .from('raffles')
-      .select('id, title, price_per_number, currency, status, number_range_start, number_range_end')
+      .select('id, title, price_per_number, currency, status, number_range_start, number_range_end, min_purchase_quantity')
       .eq('id', raffleId)
       .single()
 
     if (raffleError || !raffle) {
       return NextResponse.json({ error: 'Rifa no encontrada' }, { status: 404 })
+    }
+
+    // Validar cantidad mínima de compra configurada en la rifa
+    const minQty = raffle.min_purchase_quantity ?? 0
+    if (minQty > 0 && numbers.length < minQty) {
+      return NextResponse.json(
+        { error: `Esta rifa exige un mínimo de ${minQty} número${minQty !== 1 ? 's' : ''} por venta` },
+        { status: 400 }
+      )
     }
 
     // Validar que los números estén en rango
@@ -69,18 +93,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verificar que no estén ya tomados (pagados)
+    // Verificar que no estén ya tomados (vendidos, separados o abonados — cualquier fila existente bloquea)
     const { data: taken } = await adminClient
       .from('sold_numbers')
       .select('number')
       .eq('raffle_id', raffleId)
       .in('number', numbers)
-      .eq('status', 'paid')
 
     if (taken && taken.length > 0) {
       return NextResponse.json(
         {
-          error: 'Algunos números ya están vendidos',
+          error: 'Algunos números ya están vendidos, separados o abonados',
           takenNumbers: taken.map((n: { number: number }) => n.number),
         },
         { status: 409 }
@@ -89,6 +112,18 @@ export async function POST(req: NextRequest) {
 
     const totalAmount = raffle.price_per_number * numbers.length
     const safeEmail = buyerEmail?.trim() || `${buyerPhone.replace(/\D/g, '')}@noemail.bonorifa.com`
+
+    // Validar abono cuando el estado es "abonado"
+    let parsedAmountPaid: number | undefined
+    if (saleStatus === 'abonado') {
+      parsedAmountPaid = Number(amountPaid)
+      if (!Number.isFinite(parsedAmountPaid) || parsedAmountPaid <= 0 || parsedAmountPaid >= totalAmount) {
+        return NextResponse.json(
+          { error: `El abono debe ser mayor a 0 y menor al total ($${totalAmount.toLocaleString('es-CO')})` },
+          { status: 400 }
+        )
+      }
+    }
 
     // Usar función Postgres SECURITY DEFINER para insertar todo en una transacción
     // Esto bypasea cualquier problema de constraint/RLS desde el cliente JS
@@ -102,6 +137,8 @@ export async function POST(req: NextRequest) {
       p_payment_method: paymentMethod,
       p_seller_id:      user.id,
       p_currency:       raffle.currency ?? 'COP',
+      p_sale_status:    dbSaleStatus,
+      p_amount_paid:    saleStatus === 'abonado' ? parsedAmountPaid : null,
     })
 
     if (rpcError || !purchaseId) {

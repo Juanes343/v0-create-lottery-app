@@ -27,12 +27,21 @@ export async function POST(req: NextRequest) {
     // Obtener la rifa del servidor (nunca confiar en el precio del cliente)
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
-      .select('id, title, price_per_number, currency, status')
+      .select('id, title, price_per_number, currency, status, min_purchase_quantity')
       .eq('id', raffleId)
       .single()
 
     if (raffleError || !raffle || raffle.status !== 'active') {
       return NextResponse.json({ error: 'Rifa no disponible' }, { status: 404 })
+    }
+
+    // Validar cantidad mínima de compra configurada en la rifa
+    const minQty = raffle.min_purchase_quantity ?? 0
+    if (minQty > 0 && selectedNumbers.length < minQty) {
+      return NextResponse.json(
+        { error: `Esta rifa exige un mínimo de ${minQty} número${minQty !== 1 ? 's' : ''} por compra` },
+        { status: 400 }
+      )
     }
 
     // Verificar que los números no estén ya tomados (solo pagados, no pending huérfanos)

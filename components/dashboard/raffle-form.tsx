@@ -34,6 +34,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
   const [numberRangeStart, setNumberRangeStart] = useState(raffle?.number_range_start || 0)
   const [numberRangeEnd, setNumberRangeEnd] = useState(raffle?.number_range_end || 99999)
   const [pricePerNumber, setPricePerNumber] = useState(raffle?.price_per_number || 2000)
+  const [minPurchaseQuantity, setMinPurchaseQuantity] = useState(raffle?.min_purchase_quantity ?? 0)
   const [currency] = useState(raffle?.currency || 'COP')
   const [status, setStatus] = useState(raffle?.status || 'draft')
   const [drawDate, setDrawDate] = useState(raffle?.draw_date || '')
@@ -149,6 +150,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
       number_range_start: numberRangeStart,
       number_range_end: numberRangeEnd,
       price_per_number: pricePerNumber,
+      min_purchase_quantity: minPurchaseQuantity,
       currency,
       status,
       draw_date: drawDate || null,
@@ -502,6 +504,22 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
                 onChange={(e) => setPricePerNumber(parseInt(e.target.value) || 2000)}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="min-purchase">Cantidad mínima de compra</Label>
+              <Input
+                id="min-purchase"
+                type="number"
+                min={0}
+                value={minPurchaseQuantity}
+                onChange={(e) => setMinPurchaseQuantity(Math.max(0, parseInt(e.target.value) || 0))}
+              />
+              <p className="text-xs text-muted-foreground">
+                {minPurchaseQuantity > 0
+                  ? `Las ventas manuales exigirán al menos ${minPurchaseQuantity} número${minPurchaseQuantity !== 1 ? 's' : ''} por venta.`
+                  : '0 = sin mínimo, se puede vender cualquier cantidad.'}
+              </p>
             </div>
 
             <div className="rounded-lg bg-muted p-4 space-y-2">

@@ -10,17 +10,22 @@ import { Separator } from '@/components/ui/separator'
 import {
   Loader2, UserPlus, Save, Eye, EyeOff,
   CheckSquare, Square, Ticket, ShieldCheck, ShieldOff,
+  ShoppingCart, Hash, Link2,
 } from 'lucide-react'
 import type { Raffle, SellerWithAssignments } from '@/lib/types'
+import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
 
 interface SellerFormProps {
   mode: 'create' | 'edit'
   seller?: SellerWithAssignments
   sellerEmail?: string
   availableRaffles: Pick<Raffle, 'id' | 'title' | 'slug' | 'status'>[]
+  adminUsername?: string
+  siteUrl?: string
+  stats?: { ventas: number; boletos: number }
 }
 
-export function SellerForm({ mode, seller, sellerEmail, availableRaffles }: SellerFormProps) {
+export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminUsername, siteUrl = '', stats }: SellerFormProps) {
   const router = useRouter()
   const isEdit = mode === 'edit'
 
@@ -127,6 +132,66 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles }: Sell
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* ---- Estadísticas de ventas (solo edición) ---- */}
+      {isEdit && stats && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl p-5" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.25)' }}>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--dash-muted)' }}>Ventas</p>
+              <ShoppingCart className="h-4 w-4" style={{ color: 'rgba(52,211,153,1)' }} />
+            </div>
+            <p className="mt-2 text-3xl font-black" style={{ color: 'rgba(52,211,153,1)' }}>{stats.ventas}</p>
+          </div>
+          <div className="rounded-2xl p-5" style={{ background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.25)' }}>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--dash-muted)' }}>Boletos vendidos</p>
+              <Hash className="h-4 w-4" style={{ color: '#22d3ee' }} />
+            </div>
+            <p className="mt-2 text-3xl font-black" style={{ color: '#22d3ee' }}>{stats.boletos}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ---- Enlaces de venta por rifa asignada (solo edición) ---- */}
+      {isEdit && seller && seller.assigned_raffles.length > 0 && (
+        <div className="p-6" style={cardStyle}>
+          <h3 className="mb-4 flex items-center gap-2 text-base font-semibold" style={{ color: 'var(--dash-text)' }}>
+            <Link2 className="h-4 w-4" style={{ color: '#22d3ee' }} />
+            Enlaces de venta del vendedor
+          </h3>
+          <div className="space-y-2">
+            {seller.assigned_raffles.map(a => {
+              const slug = a.raffle?.slug
+              const link = slug && adminUsername
+                ? `${siteUrl}/${adminUsername}/${slug}?ref=${seller.id}`
+                : null
+              return (
+                <div
+                  key={a.raffle_id}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3"
+                  style={{ background: 'var(--dash-card)', border: '1px solid var(--dash-border)' }}
+                >
+                  <Ticket className="h-4 w-4 shrink-0" style={{ color: 'var(--dash-muted)' }} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--dash-text)' }}>
+                      {a.raffle?.title ?? 'Rifa'}
+                    </p>
+                    <p className="truncate text-xs" style={{ color: 'var(--dash-muted)' }}>
+                      {link ?? 'No disponible'}
+                    </p>
+                  </div>
+                  {link && <CopyLinkButton url={link} />}
+                </div>
+              )
+            })}
+          </div>
+          <p className="mt-3 text-xs" style={{ color: 'var(--dash-muted)', opacity: 0.8 }}>
+            Comparte este enlace con el vendedor: las ventas hechas a través de él quedan asociadas automáticamente.
+            Si asignas una rifa nueva, guarda los cambios para que aparezca aquí.
+          </p>
+        </div>
+      )}
+
       {/* ---- Datos del vendedor ---- */}
       <div className="p-6 space-y-5" style={cardStyle}>
         <h3 className="text-base font-semibold" style={{ color: 'var(--dash-text)' }}>
