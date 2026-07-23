@@ -199,6 +199,7 @@ export default async function PublicRafflePage({ params }: Props) {
             whatsappNumber={raffle.whatsapp_number}
             paymentInstructions={raffle.payment_instructions}
             themeId={raffle.theme}
+            minPurchaseQuantity={raffle.min_purchase_quantity}
           />
         </div>
 

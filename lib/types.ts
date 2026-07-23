@@ -25,6 +25,7 @@ export interface Raffle {
   number_range_start: number
   number_range_end: number
   price_per_number: number
+  min_purchase_quantity?: number
   currency: string
   status: 'draft' | 'active' | 'completed' | 'cancelled'
   draw_date?: string
@@ -52,6 +53,8 @@ export interface NumberPackage {
   created_at: string
 }
 
+export type SoldNumberStatus = 'pending' | 'paid' | 'cancelled' | 'reserved' | 'partial'
+
 export interface SoldNumber {
   id: string
   raffle_id: string
@@ -60,8 +63,11 @@ export interface SoldNumber {
   buyer_email: string
   buyer_name: string
   buyer_phone?: string
+  status?: SoldNumberStatus
   created_at: string
 }
+
+export type PurchaseStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'reserved' | 'partial'
 
 export interface Purchase {
   id: string
@@ -71,8 +77,9 @@ export interface Purchase {
   buyer_phone?: string
   numbers: number[]
   total_amount: number
+  amount_paid?: number
   currency: string
-  status: 'pending' | 'completed' | 'failed' | 'refunded'
+  status: PurchaseStatus
   payment_method?: string
   payment_reference?: string
   created_at: string

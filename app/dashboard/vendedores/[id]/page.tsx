@@ -16,7 +16,7 @@ export default async function EditarVendedorPage({ params }: Props) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('username, role')
     .eq('id', user.id)
     .single()
 
@@ -58,6 +58,18 @@ export default async function EditarVendedorPage({ params }: Props) {
     .select('id, title, slug, status')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+
+  // Ventas y boletos vendidos por este vendedor (compras completadas via su enlace)
+  const { data: sellerPurchases } = await supabase
+    .from('purchases')
+    .select('numbers')
+    .eq('seller_id', sellerId)
+    .eq('status', 'completed')
+
+  const sellerStats = {
+    ventas: sellerPurchases?.length ?? 0,
+    boletos: (sellerPurchases ?? []).reduce((acc: number, p: { numbers: number[] }) => acc + (p.numbers?.length ?? 0), 0),
+  }
 
   const sellerWithAssignments: SellerWithAssignments = {
     ...seller,
@@ -118,6 +130,9 @@ export default async function EditarVendedorPage({ params }: Props) {
         seller={sellerWithAssignments}
         sellerEmail={vendorEmail}
         availableRaffles={(raffles ?? []) as Pick<Raffle, 'id' | 'title' | 'slug' | 'status'>[]}
+        adminUsername={profile.username}
+        siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ''}
+        stats={sellerStats}
       />
     </div>
   )

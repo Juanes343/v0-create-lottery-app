@@ -1,9 +1,13 @@
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Ticket, Users, MessageCircle, BarChart3, ArrowRight } from 'lucide-react'
 
 export default function HomePage() {
+  redirect('/auth/login')
+
+  // eslint-disable-next-line no-unreachable
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}

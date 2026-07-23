@@ -22,6 +22,7 @@ interface NumberGridProps {
   whatsappNumber?: string
   paymentInstructions?: string
   themeId?: string
+  minPurchaseQuantity?: number
 }
 
 const NUMBERS_PER_PAGE = 500
@@ -37,6 +38,7 @@ export function NumberGrid({
   whatsappNumber,
   paymentInstructions,
   themeId,
+  minPurchaseQuantity = 0,
 }: NumberGridProps) {
   const router = useRouter()
   const theme = getRaffleTheme(themeId)
@@ -87,6 +89,7 @@ export function NumberGrid({
   }
 
   const total = selectedNumbers.size * pricePerNumber
+  const meetsMinPurchase = minPurchaseQuantity <= 0 || selectedNumbers.size >= minPurchaseQuantity
   const numberDigits = rangeEnd.toString().length
 
   const handleCheckoutSuccess = useCallback(() => {
@@ -365,21 +368,29 @@ export function NumberGrid({
                 ))}
               </div>
 
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={clearSelection}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold transition-all hover:bg-white/10"
-                  style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}
-                >
-                  Limpiar
-                </button>
-                <button
-                  className="rounded-xl px-8 py-2.5 font-black text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                  style={{ background: theme.gradient, boxShadow: `0 4px 20px ${theme.accentText}50` }}
-                  onClick={() => setIsCheckoutOpen(true)}
-                >
-                  Continuar al Pago →
-                </button>
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <div className="flex gap-2">
+                  <button
+                    onClick={clearSelection}
+                    className="rounded-xl px-4 py-2.5 text-xs font-semibold transition-all hover:bg-white/10"
+                    style={{ border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }}
+                  >
+                    Limpiar
+                  </button>
+                  <button
+                    disabled={!meetsMinPurchase}
+                    className="rounded-xl px-8 py-2.5 font-black text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:opacity-40"
+                    style={{ background: theme.gradient, boxShadow: meetsMinPurchase ? `0 4px 20px ${theme.accentText}50` : 'none' }}
+                    onClick={() => setIsCheckoutOpen(true)}
+                  >
+                    Continuar al Pago →
+                  </button>
+                </div>
+                {!meetsMinPurchase && (
+                  <p className="text-xs font-semibold" style={{ color: '#f87171' }}>
+                    Mínimo {minPurchaseQuantity} números por compra (faltan {minPurchaseQuantity - selectedNumbers.size})
+                  </p>
+                )}
               </div>
             </div>
           </div>
