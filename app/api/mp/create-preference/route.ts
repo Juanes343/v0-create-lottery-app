@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import MercadoPagoConfig, { Preference } from 'mercadopago'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getSellerMpAccessToken } from '@/lib/mp-seller'
 
-const mpClient = new MercadoPagoConfig({
+const platformClient = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
 })
 
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     // Obtener la rifa del servidor (nunca confiar en el precio del cliente)
     const { data: raffle, error: raffleError } = await supabase
       .from('raffles')
-      .select('id, title, price_per_number, currency, status, min_purchase_quantity')
+      .select('id, title, price_per_number, currency, status, min_purchase_quantity, vendor_commission_percent')
       .eq('id', raffleId)
       .single()
 
@@ -87,6 +88,16 @@ export async function POST(req: NextRequest) {
       if (sellerProfile) resolvedSellerId = sellerProfile.id
     }
 
+    // Si el vendedor tiene su propia cuenta MP conectada y la rifa tiene comisión
+    // configurada, la venta se divide: el vendedor cobra directo y el % queda
+    // acreditado automáticamente a la cuenta dueña de la Aplicación (marketplace_fee).
+    const commissionPercent = raffle.vendor_commission_percent ?? 0
+    const sellerMpToken = resolvedSellerId && commissionPercent > 0
+      ? await getSellerMpAccessToken(resolvedSellerId)
+      : null
+    const willSplit = !!sellerMpToken
+    const commissionAmount = willSplit ? Math.round(totalAmount * commissionPercent / 100) : 0
+
     // Crear registro de compra en estado pendiente
     const { data: purchase, error: purchaseError } = await supabase
       .from('purchases')
@@ -99,6 +110,8 @@ export async function POST(req: NextRequest) {
         numbers: selectedNumbers,
         status: 'pending',
         payment_method: 'mercadopago',
+        vendor_commission_amount: commissionAmount,
+        mp_split_applied: willSplit,
         ...(resolvedSellerId ? { seller_id: resolvedSellerId } : {}),
       })
       .select()
@@ -132,7 +145,13 @@ export async function POST(req: NextRequest) {
     // Crear preferencia de pago en Mercado Pago
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v0-create-lottery-app.vercel.app'
 
-    const preference = new Preference(mpClient)
+    // Si hay split: la preferencia se crea con el token DEL VENDEDOR (él es el "collector"
+    // y recibe el pago completo en su cuenta); marketplace_fee acredita tu % automáticamente.
+    const preferenceClient = willSplit
+      ? new MercadoPagoConfig({ accessToken: sellerMpToken! })
+      : platformClient
+
+    const preference = new Preference(preferenceClient)
     const prefResult = await preference.create({
       body: {
         items: [
@@ -157,6 +176,7 @@ export async function POST(req: NextRequest) {
         auto_return: 'approved',
         notification_url: `${siteUrl}/api/mp/webhook`,
         external_reference: purchase.id,
+        ...(willSplit ? { marketplace_fee: commissionAmount } : {}),
       },
     })
 

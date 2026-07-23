@@ -20,7 +20,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No payment ID' }, { status: 400 })
     }
 
-    // Verificar el pago directamente con MP (no confiar solo en el webhook)
+    // Verificar el pago directamente con MP (no confiar solo en el webhook).
+    // NOTA: si la preferencia se creó con el token de un vendedor conectado (split de
+    // comisión), este token de plataforma debería poder seguir consultando el pago por
+    // pertenecer a la misma Aplicación OAuth. Verificar esto en pruebas reales con un
+    // vendedor conectado antes de confiar en producción.
     const paymentClient = new Payment(mpClient)
     const payment = await paymentClient.get({ id: String(paymentId) })
 
