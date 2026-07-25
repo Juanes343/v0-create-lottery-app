@@ -3,13 +3,7 @@ import type { CreateCheckoutInput, CreateCheckoutResult } from './types'
 
 const RAPYD_BASE_URL = process.env.RAPYD_BASE_URL || 'https://sandboxapi.rapyd.net'
 
-interface RapydSignedHeaders {
-  access_key: string
-  salt: string
-  timestamp: string
-  signature: string
-  'Content-Type': string
-}
+type RapydSignedHeaders = Record<string, string>
 
 /**
  * Firma de peticiones de Rapyd:
@@ -88,6 +82,114 @@ export async function createRapydCheckout(input: CreateCheckoutInput): Promise<C
  * (protocolo + dominio + path) tal como quedó registrada en su dashboard. Usar el body
  * crudo sin re-serializar.
  */
+interface RapydWallet {
+  id: string
+}
+
+/**
+ * Crea una "cartera personal" de Rapyd para un vendedor — sin login ni OAuth de su parte,
+ * la plataforma la crea con solo su nombre. https://docs.rapyd.net/en/create-wallet.html
+ */
+export async function createSellerWallet(input: {
+  sellerId: string
+  firstName: string
+  lastName: string
+}): Promise<string> {
+  const data = await rapydRequest<RapydWallet>('post', '/v1/ewallets', {
+    first_name: input.firstName,
+    last_name: input.lastName,
+    ewallet_reference_id: input.sellerId,
+    type: 'person',
+    contact: {
+      first_name: input.firstName,
+      last_name: input.lastName,
+      contact_type: 'personal',
+      country: 'CO',
+    },
+  })
+  return data.id
+}
+
+export async function getWalletBalance(ewalletId: string): Promise<number> {
+  const data = await rapydRequest<{ accounts: { currency: string; balance: number }[] }>(
+    'get',
+    `/v1/ewallets/${ewalletId}`,
+  )
+  const copAccount = data.accounts?.find((a) => a.currency === 'COP')
+  return copAccount?.balance ?? 0
+}
+
+/**
+ * Transfiere la comision de una venta desde la cartera de la plataforma (RAPYD_PLATFORM_EWALLET_ID)
+ * hacia la cartera del vendedor, y la acepta automaticamente (la plataforma controla ambas
+ * carteras, no requiere accion del vendedor).
+ * https://docs.rapyd.net/en/transfer-funds-between-wallets.html
+ */
+export async function transferCommissionToWallet(input: {
+  destinationEwallet: string
+  amount: number
+  currency?: string
+}): Promise<string> {
+  const platformWallet = process.env.RAPYD_PLATFORM_EWALLET_ID
+  if (!platformWallet) {
+    throw new Error('Falta configurar RAPYD_PLATFORM_EWALLET_ID')
+  }
+
+  const transfer = await rapydRequest<{ id: string; status: string }>('post', '/v1/ewallets/transfer', {
+    source_ewallet: platformWallet,
+    destination_ewallet: input.destinationEwallet,
+    amount: input.amount,
+    currency: input.currency || 'COP',
+  })
+
+  await rapydRequest('post', '/v1/ewallets/transfer/response', {
+    id: transfer.id,
+    status: 'accept',
+  })
+
+  return transfer.id
+}
+
+/**
+ * Crea un payout desde la cartera del vendedor hacia su cuenta bancaria real.
+ * https://docs.rapyd.net/en/create-payout.html
+ */
+export async function createWalletPayout(input: {
+  ewalletId: string
+  amount: number
+  beneficiaryName: string
+  bankAccountNumber: string
+  payoutMethodType: string
+  identificationNumber?: string
+}): Promise<{ id: string; status: string }> {
+  return rapydRequest('post', '/v1/payouts', {
+    ewallet: input.ewalletId,
+    payout_amount: input.amount,
+    payout_currency: 'COP',
+    sender_currency: 'COP',
+    sender_country: 'CO',
+    sender_entity_type: 'individual',
+    beneficiary_country: 'CO',
+    beneficiary_entity_type: 'individual',
+    payout_method_type: input.payoutMethodType,
+    beneficiary: {
+      name: input.beneficiaryName,
+      account_number: input.bankAccountNumber,
+      country: 'CO',
+      identification_number: input.identificationNumber,
+    },
+    description: 'Retiro de comision - BonoRifa',
+  })
+}
+
+/** Lista los tipos de metodo de payout disponibles para Colombia (bancos) */
+export async function listColombiaPayoutMethods() {
+  return rapydRequest<Array<{ name: string; category: string }>>(
+    'get',
+    '/v1/payout_methods/CO?currency=COP&payout_type=bank',
+  )
+}
+
 export function verifyRapydWebhookSignature(params: {
   urlPath: string
   salt: string

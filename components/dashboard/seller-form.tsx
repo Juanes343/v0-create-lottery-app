@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import type { Raffle, SellerWithAssignments } from '@/lib/types'
 import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
+import { RapydWalletCard } from '@/components/dashboard/rapyd-wallet-card'
 
 interface SellerFormProps {
   mode: 'create' | 'edit'
@@ -192,6 +193,9 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
           </Badge>
         </div>
       )}
+
+      {/* ---- Cartera Rapyd (solo edición) ---- */}
+      {isEdit && seller && <RapydWalletCard sellerId={seller.id} />}
 
       {/* ---- Enlaces de venta por rifa asignada (solo edición) ---- */}
       {isEdit && seller && seller.assigned_raffles.length > 0 && (
