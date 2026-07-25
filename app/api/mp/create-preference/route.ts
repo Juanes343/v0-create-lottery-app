@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       preferenceId: checkoutResult.providerReference,
       checkoutUrl: checkoutResult.checkoutUrl,
+      purchaseId: purchase.id,
     })
   } catch (err) {
     console.error('create-preference error:', err)

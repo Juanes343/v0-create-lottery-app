@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle, ArrowLeft, ExternalLink } from 'lucide-react'
+import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle, ArrowLeft, ExternalLink, CheckCircle2, XCircle } from 'lucide-react'
+import { usePaymentStatus } from '@/hooks/use-payment-status'
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -39,6 +40,7 @@ export function CheckoutModal({
   currency,
   whatsappNumber,
   paymentInstructions,
+  onSuccess,
 }: CheckoutModalProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -48,7 +50,10 @@ export function CheckoutModal({
   const [mpError, setMpError] = useState<string | null>(null)
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
+  const [purchaseId, setPurchaseId] = useState<string | null>(null)
   const step = preferenceId ? 'payment' : 'form'
+
+  const paymentStatus = usePaymentStatus(step === 'payment' ? purchaseId : null)
 
   const total = selectedNumbers.length * pricePerNumber
   const numberDigits = 5
@@ -126,6 +131,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
       }
       setPreferenceId(data.preferenceId)
       setCheckoutUrl(data.checkoutUrl)
+      setPurchaseId(data.purchaseId)
     } catch {
       setMpError('Error de conexión. Intenta de nuevo.')
     } finally {
@@ -133,9 +139,17 @@ Por favor confirmar disponibilidad y metodo de pago.`
     }
   }
 
+  // Cuando el polling detecta que el pago se confirmó, avisar al padre (refresca la grilla)
+  useEffect(() => {
+    if (paymentStatus === 'completed') {
+      onSuccess?.()
+    }
+  }, [paymentStatus, onSuccess])
+
   const handleVolver = () => {
     setPreferenceId(null)
     setCheckoutUrl(null)
+    setPurchaseId(null)
     setMpError(null)
   }
 
@@ -302,20 +316,46 @@ Por favor confirmar disponibilidad y metodo de pago.`
                 <p className="text-sm text-gray-500">{name} · {phone}{email ? ` · ${email}` : ''}</p>
               </div>
 
-              <a
-                href={checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#009ee3] px-6 py-4 text-base font-black text-white hover:bg-[#0082c0] transition-colors"
-              >
-                <CreditCard className="h-5 w-5" />
-                Ir a pagar
-                <ExternalLink className="h-4 w-4" />
-              </a>
+              {paymentStatus === 'completed' ? (
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+                  <p className="font-black text-emerald-800">¡Pago confirmado!</p>
+                  <p className="text-sm text-emerald-700">Tus números ya están asegurados.</p>
+                  <Button onClick={onClose} className="mt-1 bg-emerald-600 hover:bg-emerald-700">
+                    Listo
+                  </Button>
+                </div>
+              ) : paymentStatus === 'failed' ? (
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+                  <XCircle className="h-10 w-10 text-red-600" />
+                  <p className="font-black text-red-800">El pago no se pudo completar</p>
+                  <Button onClick={handleVolver} variant="outline" className="mt-1">
+                    Intentar de nuevo
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <a
+                    href={checkoutUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#009ee3] px-6 py-4 text-base font-black text-white hover:bg-[#0082c0] transition-colors"
+                  >
+                    <CreditCard className="h-5 w-5" />
+                    Ir a pagar
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
 
-              <p className="text-xs text-center text-muted-foreground">
-                Se abrirá la pasarela de pago en una nueva pestaña. Al completar el pago tus números quedan confirmados.
-              </p>
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Esperando confirmación del pago...
+                  </div>
+
+                  <p className="text-xs text-center text-muted-foreground">
+                    Se abrirá la pasarela de pago en una nueva pestaña. Al completar el pago tus números quedan confirmados automáticamente aquí.
+                  </p>
+                </>
+              )}
             </>
           )}
         </div>
