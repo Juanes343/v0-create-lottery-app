@@ -249,7 +249,7 @@ export function ManualSaleModal({ raffle, sellerId }: ManualSaleModalProps) {
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#009ee3] px-6 py-3 text-sm font-black text-white transition-colors hover:bg-[#0082c0]"
               >
                 <CreditCard className="h-4 w-4" />
-                Pagar con Mercado Pago
+                Ir a pagar
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
               <p className="text-xs" style={{ color: 'var(--dash-muted)' }}>
@@ -371,7 +371,7 @@ export function ManualSaleModal({ raffle, sellerId }: ManualSaleModalProps) {
                 </div>
                 {isTransferencia && (
                   <p className="mt-2 text-xs" style={{ color: 'var(--dash-muted)' }}>
-                    Se generará un link de Mercado Pago para que el comprador complete el pago. Los números quedan reservados mientras tanto.
+                    Se generará un link de pago para que el comprador complete la transacción. Los números quedan reservados mientras tanto.
                   </p>
                 )}
               </div>

@@ -294,7 +294,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
             </>
           )}
 
-          {/* PASO 2: Ir a pagar con Mercado Pago */}
+          {/* PASO 2: Ir a pagar */}
           {step === 'payment' && preferenceId && checkoutUrl && (
             <>
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -309,12 +309,12 @@ Por favor confirmar disponibilidad y metodo de pago.`
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#009ee3] px-6 py-4 text-base font-black text-white hover:bg-[#0082c0] transition-colors"
               >
                 <CreditCard className="h-5 w-5" />
-                Pagar con Mercado Pago
+                Ir a pagar
                 <ExternalLink className="h-4 w-4" />
               </a>
 
               <p className="text-xs text-center text-muted-foreground">
-                Se abrirá la página de Mercado Pago en una nueva pestaña. Al completar el pago tus números quedan confirmados.
+                Se abrirá la pasarela de pago en una nueva pestaña. Al completar el pago tus números quedan confirmados.
               </p>
             </>
           )}
