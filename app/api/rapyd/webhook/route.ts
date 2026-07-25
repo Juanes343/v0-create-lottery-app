@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { verifyRapydWebhookSignature } from '@/lib/payments/rapyd'
+import { verifyRapydWebhookSignature, transferCommissionToWallet } from '@/lib/payments/rapyd'
 
 /**
  * Webhook de Rapyd. IMPORTANTE: usa el body crudo (texto) para verificar la firma —
@@ -52,6 +52,36 @@ export async function POST(req: NextRequest) {
         .from('sold_numbers')
         .update({ status: 'paid' })
         .eq('purchase_id', purchaseId)
+
+      // Transferir automáticamente la comisión del vendedor a su cartera de Rapyd
+      const { data: purchase } = await supabase
+        .from('purchases')
+        .select('seller_id, vendor_commission_amount, rapyd_transfer_id')
+        .eq('id', purchaseId)
+        .single()
+
+      if (purchase?.seller_id && purchase.vendor_commission_amount > 0 && !purchase.rapyd_transfer_id) {
+        const { data: wallet } = await supabase
+          .from('seller_rapyd_wallets')
+          .select('ewallet_id')
+          .eq('seller_id', purchase.seller_id)
+          .single()
+
+        if (wallet?.ewallet_id) {
+          try {
+            const transferId = await transferCommissionToWallet({
+              destinationEwallet: wallet.ewallet_id,
+              amount: purchase.vendor_commission_amount,
+            })
+            await supabase
+              .from('purchases')
+              .update({ rapyd_transfer_id: transferId })
+              .eq('id', purchaseId)
+          } catch (err) {
+            console.error('[rapyd-webhook] Error transfiriendo comisión:', err)
+          }
+        }
+      }
     } else if (type === 'PAYMENT_FAILED' || type === 'PAYMENT_EXPIRED' || data.status === 'ERR') {
       await supabase
         .from('purchases')
