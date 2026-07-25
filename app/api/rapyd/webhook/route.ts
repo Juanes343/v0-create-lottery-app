@@ -13,7 +13,13 @@ export async function POST(req: NextRequest) {
     const salt = req.headers.get('salt')
     const timestamp = req.headers.get('timestamp')
     const signature = req.headers.get('signature')
-    const urlPath = new URL(req.url).pathname
+
+    // IMPORTANTE: para webhooks, Rapyd firma con la URL COMPLETA registrada en su
+    // dashboard (protocolo + dominio + path), no solo el path relativo — a diferencia
+    // de la firma de peticiones salientes a su API. Usar la URL fija, no reconstruirla
+    // desde el request (evita problemas de protocolo detrás de proxies).
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v0-create-lottery-app.vercel.app'
+    const urlPath = `${siteUrl}/api/rapyd/webhook`
 
     if (!salt || !timestamp || !signature) {
       return NextResponse.json({ error: 'Faltan headers de firma' }, { status: 400 })

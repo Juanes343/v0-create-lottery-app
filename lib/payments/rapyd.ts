@@ -81,9 +81,12 @@ export async function createRapydCheckout(input: CreateCheckoutInput): Promise<C
  * Verificación de firma de webhooks de Rapyd:
  * signature = base64( hex( hmac_sha256(secret_key, url_path + salt + timestamp + access_key + secret_key + raw_body) ) )
  * https://docs.rapyd.net/en/webhook-authentication.html
- * IMPORTANTE: usar el body crudo tal cual llega (sin re-serializar), y verificar en un
- * webhook real de prueba antes de confiar en producción — el url_path exacto que Rapyd
- * usa para firmar (con o sin query string) no está 100% documentado.
+ *
+ * IMPORTANTE (confirmado con un webhook real que fallaba con 401 "Firma inválida"):
+ * a diferencia de la firma de peticiones salientes (donde url_path es solo la ruta,
+ * ej. "/v1/checkout"), para verificar webhooks Rapyd firma con la URL COMPLETA
+ * (protocolo + dominio + path) tal como quedó registrada en su dashboard. Usar el body
+ * crudo sin re-serializar.
  */
 export function verifyRapydWebhookSignature(params: {
   urlPath: string
