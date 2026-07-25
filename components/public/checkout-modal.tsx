@@ -51,11 +51,15 @@ export function CheckoutModal({
   const [preferenceId, setPreferenceId] = useState<string | null>(null)
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null)
   const [purchaseId, setPurchaseId] = useState<string | null>(null)
+  // Congela los números mostrados al pasar a pagar, para que no se vacíen si el padre
+  // limpia la selección apenas se confirma el pago (mientras el modal sigue abierto).
+  const [numbersSnapshot, setNumbersSnapshot] = useState<number[] | null>(null)
   const step = preferenceId ? 'payment' : 'form'
 
   const paymentStatus = usePaymentStatus(step === 'payment' ? purchaseId : null)
 
-  const total = selectedNumbers.length * pricePerNumber
+  const displayNumbers = numbersSnapshot ?? selectedNumbers
+  const total = displayNumbers.length * pricePerNumber
   const numberDigits = 5
 
   const formatNumber = (num: number) => num.toString().padStart(numberDigits, '0')
@@ -132,6 +136,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
       setPreferenceId(data.preferenceId)
       setCheckoutUrl(data.checkoutUrl)
       setPurchaseId(data.purchaseId)
+      setNumbersSnapshot([...selectedNumbers])
     } catch {
       setMpError('Error de conexión. Intenta de nuevo.')
     } finally {
@@ -150,11 +155,12 @@ Por favor confirmar disponibilidad y metodo de pago.`
     setPreferenceId(null)
     setCheckoutUrl(null)
     setPurchaseId(null)
+    setNumbersSnapshot(null)
     setMpError(null)
   }
 
   const copyNumbers = () => {
-    const numbersText = selectedNumbers.map(formatNumber).join(', ')
+    const numbersText = displayNumbers.map(formatNumber).join(', ')
     navigator.clipboard.writeText(numbersText)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -196,19 +202,19 @@ Por favor confirmar disponibilidad y metodo de pago.`
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2 mb-4">
-                {selectedNumbers.slice(0, 10).map((num) => (
+                {displayNumbers.slice(0, 10).map((num) => (
                   <Badge key={num} variant="secondary" className="font-mono">
                     {formatNumber(num)}
                   </Badge>
                 ))}
-                {selectedNumbers.length > 10 && (
-                  <Badge variant="outline">+{selectedNumbers.length - 10} más</Badge>
+                {displayNumbers.length > 10 && (
+                  <Badge variant="outline">+{displayNumbers.length - 10} más</Badge>
                 )}
               </div>
               <Separator className="my-3" />
               <div className="flex justify-between items-center">
                 <span className="text-sm">
-                  {selectedNumbers.length} números × {formatPrice(pricePerNumber)}
+                  {displayNumbers.length} números × {formatPrice(pricePerNumber)}
                 </span>
                 <span className="text-lg font-bold text-primary">{formatPrice(total)}</span>
               </div>
