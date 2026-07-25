@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ClipboardList, Loader2, Plus, X, CheckCircle2, BookmarkCheck, HandCoins, CreditCard, ExternalLink } from 'lucide-react'
+import { ClipboardList, Loader2, Plus, X, CheckCircle2, BookmarkCheck, HandCoins, CreditCard, ExternalLink, XCircle } from 'lucide-react'
 import { NumberPickerGrid, type TakenStatus } from '@/components/dashboard/number-picker-grid'
+import { usePaymentStatus } from '@/hooks/use-payment-status'
 
 interface RaffleInfo {
   id: string
@@ -51,6 +52,15 @@ export function ManualSaleModal({ raffle, sellerId }: ManualSaleModalProps) {
   const [taken,        setTaken]        = useState<Record<number, TakenStatus>>({})
   const [loadingTaken, setLoadingTaken] = useState(false)
   const [mpCheckoutUrl, setMpCheckoutUrl] = useState<string | null>(null)
+  const [transferPurchaseId, setTransferPurchaseId] = useState<string | null>(null)
+  const transferStatus = usePaymentStatus(mpCheckoutUrl ? transferPurchaseId : null)
+
+  // Cuando el polling detecta que la transferencia se confirmó, refrescar la vista
+  useEffect(() => {
+    if (transferStatus === 'completed') {
+      router.refresh()
+    }
+  }, [transferStatus, router])
 
   // Cargar el mapa de números tomados al abrir el modal
   useEffect(() => {
@@ -121,6 +131,7 @@ export function ManualSaleModal({ raffle, sellerId }: ManualSaleModalProps) {
       setError(null)
       setSuccess(false)
       setMpCheckoutUrl(null)
+      setTransferPurchaseId(null)
       if (mpCheckoutUrl) router.refresh()
     }
   }
@@ -158,6 +169,7 @@ export function ManualSaleModal({ raffle, sellerId }: ManualSaleModalProps) {
       }
 
       setMpCheckoutUrl(data.checkoutUrl)
+      setTransferPurchaseId(data.purchaseId)
       return
     }
 
@@ -230,31 +242,64 @@ export function ManualSaleModal({ raffle, sellerId }: ManualSaleModalProps) {
 
           {mpCheckoutUrl ? (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <div
-                className="flex h-14 w-14 items-center justify-center rounded-full"
-                style={{ background: '#009ee3', boxShadow: '0 0 24px rgba(0,158,227,0.4)' }}
-              >
-                <CreditCard className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <p className="font-bold text-lg" style={{ color: 'var(--dash-text)' }}>Números reservados</p>
-                <p className="mt-1 text-sm" style={{ color: 'var(--dash-muted)' }}>
-                  {selectedNumbers.length} número{selectedNumbers.length !== 1 ? 's' : ''} para {buyerName}. Comparte este link para que complete el pago.
-                </p>
-              </div>
-              <a
-                href={mpCheckoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#009ee3] px-6 py-3 text-sm font-black text-white transition-colors hover:bg-[#0082c0]"
-              >
-                <CreditCard className="h-4 w-4" />
-                Ir a pagar
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-              <p className="text-xs" style={{ color: 'var(--dash-muted)' }}>
-                Los números quedan reservados y se confirmarán automáticamente cuando se complete el pago.
-              </p>
+              {transferStatus === 'completed' ? (
+                <>
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full"
+                    style={{ background: 'linear-gradient(135deg, #059669, #34d399)', boxShadow: '0 0 24px rgba(52,211,153,0.4)' }}
+                  >
+                    <CheckCircle2 className="h-7 w-7 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg" style={{ color: 'var(--dash-text)' }}>¡Pago confirmado!</p>
+                    <p className="mt-1 text-sm" style={{ color: 'var(--dash-muted)' }}>
+                      Los números ya quedaron marcados como vendidos.
+                    </p>
+                  </div>
+                </>
+              ) : transferStatus === 'failed' ? (
+                <>
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full"
+                    style={{ background: 'rgba(248,113,113,1)', boxShadow: '0 0 24px rgba(248,113,113,0.4)' }}
+                  >
+                    <XCircle className="h-7 w-7 text-white" />
+                  </div>
+                  <p className="font-bold text-lg" style={{ color: 'var(--dash-text)' }}>El pago no se pudo completar</p>
+                </>
+              ) : (
+                <>
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full"
+                    style={{ background: '#009ee3', boxShadow: '0 0 24px rgba(0,158,227,0.4)' }}
+                  >
+                    <CreditCard className="h-7 w-7 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-lg" style={{ color: 'var(--dash-text)' }}>Números reservados</p>
+                    <p className="mt-1 text-sm" style={{ color: 'var(--dash-muted)' }}>
+                      {selectedNumbers.length} número{selectedNumbers.length !== 1 ? 's' : ''} para {buyerName}. Comparte este link para que complete el pago.
+                    </p>
+                  </div>
+                  <a
+                    href={mpCheckoutUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#009ee3] px-6 py-3 text-sm font-black text-white transition-colors hover:bg-[#0082c0]"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Ir a pagar
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                  <div className="flex items-center justify-center gap-2 text-xs" style={{ color: 'var(--dash-muted)' }}>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Esperando confirmación del pago...
+                  </div>
+                  <p className="text-xs" style={{ color: 'var(--dash-muted)' }}>
+                    Los números quedan reservados y se confirmarán automáticamente cuando se complete el pago.
+                  </p>
+                </>
+              )}
               <button
                 onClick={handleClose}
                 className="mt-1 rounded-xl px-6 py-2 text-sm font-bold"
