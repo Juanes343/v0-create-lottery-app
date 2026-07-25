@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import MercadoPagoConfig, { Preference } from 'mercadopago'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getSellerMpAccessToken } from '@/lib/mp-seller'
-
-const platformClient = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
-})
+import { getActiveProvider } from '@/lib/payments'
+import { createMercadoPagoCheckout } from '@/lib/payments/mercadopago'
+import { createRapydCheckout } from '@/lib/payments/rapyd'
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +22,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createAdminClient()
+    const provider = getActiveProvider()
 
     // Obtener la rifa del servidor (nunca confiar en el precio del cliente)
     const { data: raffle, error: raffleError } = await supabase
@@ -88,15 +87,16 @@ export async function POST(req: NextRequest) {
       if (sellerProfile) resolvedSellerId = sellerProfile.id
     }
 
-    // Si el vendedor tiene su propia cuenta MP conectada y la rifa tiene comisión
-    // configurada, la venta se divide: el vendedor cobra directo y el % queda
-    // acreditado automáticamente a la cuenta dueña de la Aplicación (marketplace_fee).
+    // Split automático de comisión: solo soportado con Mercado Pago (vendedor conectado via OAuth).
+    // Con Rapyd, la comisión queda registrada como tracking interno únicamente (fase 1).
     const commissionPercent = raffle.vendor_commission_percent ?? 0
-    const sellerMpToken = resolvedSellerId && commissionPercent > 0
+    const sellerMpToken = provider === 'mercadopago' && resolvedSellerId && commissionPercent > 0
       ? await getSellerMpAccessToken(resolvedSellerId)
       : null
     const willSplit = !!sellerMpToken
-    const commissionAmount = willSplit ? Math.round(totalAmount * commissionPercent / 100) : 0
+    const commissionAmount = willSplit
+      ? Math.round(totalAmount * commissionPercent / 100)
+      : (resolvedSellerId && commissionPercent > 0 ? Math.round(totalAmount * commissionPercent / 100) : 0)
 
     // Crear registro de compra en estado pendiente
     const { data: purchase, error: purchaseError } = await supabase
@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
         total_amount: totalAmount,
         numbers: selectedNumbers,
         status: 'pending',
-        payment_method: 'mercadopago',
+        payment_method: provider,
         vendor_commission_amount: commissionAmount,
         mp_split_applied: willSplit,
         ...(resolvedSellerId ? { seller_id: resolvedSellerId } : {}),
@@ -142,57 +142,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Error al reservar números', detail: numbersError?.message }, { status: 500 })
     }
 
-    // Crear preferencia de pago en Mercado Pago
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v0-create-lottery-app.vercel.app'
+    const checkoutInput = {
+      purchaseId: purchase.id,
+      raffleTitle: raffle.title,
+      totalAmount,
+      currency: raffle.currency ?? 'COP',
+      numberCount: selectedNumbers.length,
+      buyerName: buyerName.trim(),
+      buyerPhone: buyerPhone.trim(),
+      buyerEmail: buyerEmail?.trim() || undefined,
+      ...(willSplit ? { sellerAccessToken: sellerMpToken!, commissionAmount } : {}),
+    }
 
-    // Si hay split: la preferencia se crea con el token DEL VENDEDOR (él es el "collector"
-    // y recibe el pago completo en su cuenta); marketplace_fee acredita tu % automáticamente.
-    const preferenceClient = willSplit
-      ? new MercadoPagoConfig({ accessToken: sellerMpToken! })
-      : platformClient
+    const checkoutResult = provider === 'rapyd'
+      ? await createRapydCheckout(checkoutInput)
+      : await createMercadoPagoCheckout(checkoutInput)
 
-    const preference = new Preference(preferenceClient)
-    const prefResult = await preference.create({
-      body: {
-        items: [
-          {
-            id: purchase.id,
-            title: `${selectedNumbers.length} número(s) — ${raffle.title}`,
-            quantity: 1,
-            unit_price: totalAmount,
-            currency_id: 'COP',
-          },
-        ],
-        payer: {
-          name: buyerName.trim(),
-          phone: { number: buyerPhone.replace(/\D/g, '') },
-          ...(buyerEmail?.trim() ? { email: buyerEmail.trim() } : {}),
-        },
-        back_urls: {
-          success: `${siteUrl}/pago/exitoso?purchase_id=${purchase.id}`,
-          failure: `${siteUrl}/pago/fallido?purchase_id=${purchase.id}`,
-          pending: `${siteUrl}/pago/pendiente?purchase_id=${purchase.id}`,
-        },
-        auto_return: 'approved',
-        notification_url: `${siteUrl}/api/mp/webhook`,
-        external_reference: purchase.id,
-        ...(willSplit ? { marketplace_fee: commissionAmount } : {}),
-      },
-    })
-
-    // Guardar el preference_id en la compra
+    // Guardar la referencia del proveedor en la compra
     await supabase
       .from('purchases')
-      .update({ payment_reference: prefResult.id })
+      .update({ payment_reference: checkoutResult.providerReference })
       .eq('id', purchase.id)
 
     return NextResponse.json({
-      preferenceId: prefResult.id,
-      // sandbox_init_point para pruebas, init_point para producción
-      checkoutUrl: prefResult.sandbox_init_point ?? prefResult.init_point,
+      preferenceId: checkoutResult.providerReference,
+      checkoutUrl: checkoutResult.checkoutUrl,
     })
   } catch (err) {
-    console.error('MP create-preference error:', err)
+    console.error('create-preference error:', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }
