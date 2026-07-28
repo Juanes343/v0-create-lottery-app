@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
-import { ExternalLink, Copy, Users } from 'lucide-react'
+import { ExternalLink, Users } from 'lucide-react'
 import { SoldNumbersList } from '@/components/dashboard/sold-numbers-list'
 import { ManualSaleModal } from '@/components/dashboard/manual-sale-modal'
+import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
 
 export default async function RaffleDetailPage({
   params,
@@ -51,6 +52,9 @@ export default async function RaffleDetailPage({
   const progress = Math.round((soldCount / totalNumbers) * 100)
   const revenue = soldCount * raffle.price_per_number
   const publicUrl = `/${profile?.username}/${raffle.slug}`
+  // Con ?ref= a tu propio id: tus ventas directas (sin pasar por un vendedor) tambien
+  // quedan atribuidas a ti, para diferenciarlas de las ventas de tus vendedores.
+  const fullPublicUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}${publicUrl}?ref=${user.id}`
 
   const statusColors = {
     draft: 'bg-muted text-muted-foreground',
@@ -159,12 +163,10 @@ export default async function RaffleDetailPage({
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-muted px-3 py-2 text-sm">
-              {typeof window !== 'undefined' ? window.location.origin : ''}{publicUrl}
+            <code className="flex-1 truncate rounded bg-muted px-3 py-2 text-sm">
+              {fullPublicUrl}
             </code>
-            <Button variant="outline" size="icon">
-              <Copy className="h-4 w-4" />
-            </Button>
+            <CopyLinkButton url={fullPublicUrl} />
           </div>
         </CardContent>
       </Card>

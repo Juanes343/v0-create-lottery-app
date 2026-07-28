@@ -13,6 +13,8 @@ export interface CreateCheckoutInput {
   sellerAccessToken?: string
   /** monto de comision del vendedor a repartir via marketplace_fee — solo Mercado Pago */
   commissionAmount?: number
+  /** cartera Rapyd destino del cobro — solo Rapyd. Si no se indica, cae en RAPYD_PLATFORM_EWALLET_ID */
+  destinationEwallet?: string
 }
 
 export interface CreateCheckoutResult {

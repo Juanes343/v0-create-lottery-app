@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { verifyRapydWebhookSignature, transferCommissionToWallet } from '@/lib/payments/rapyd'
+import { verifyRapydWebhookSignature, transferBetweenWallets } from '@/lib/payments/rapyd'
 
 /**
  * Webhook de Rapyd. IMPORTANTE: usa el body crudo (texto) para verificar la firma —
@@ -53,32 +53,73 @@ export async function POST(req: NextRequest) {
         .update({ status: 'paid' })
         .eq('purchase_id', purchaseId)
 
-      // Transferir automáticamente la comisión del vendedor a su cartera de Rapyd
+      // Transferir automáticamente la comisión de plataforma y la del vendedor
       const { data: purchase } = await supabase
         .from('purchases')
-        .select('seller_id, vendor_commission_amount, rapyd_transfer_id')
+        .select('raffle_id, seller_id, vendor_commission_amount, rapyd_transfer_id, platform_commission_amount, platform_transfer_id')
         .eq('id', purchaseId)
         .single()
 
-      if (purchase?.seller_id && purchase.vendor_commission_amount > 0 && !purchase.rapyd_transfer_id) {
-        const { data: wallet } = await supabase
-          .from('seller_rapyd_wallets')
-          .select('ewallet_id')
-          .eq('seller_id', purchase.seller_id)
+      if (purchase) {
+        const { data: raffle } = await supabase
+          .from('raffles')
+          .select('user_id')
+          .eq('id', purchase.raffle_id)
           .single()
 
-        if (wallet?.ewallet_id) {
-          try {
-            const transferId = await transferCommissionToWallet({
-              destinationEwallet: wallet.ewallet_id,
-              amount: purchase.vendor_commission_amount,
-            })
-            await supabase
-              .from('purchases')
-              .update({ rapyd_transfer_id: transferId })
-              .eq('id', purchaseId)
-          } catch (err) {
-            console.error('[rapyd-webhook] Error transfiriendo comisión:', err)
+        const { data: ownerProfile } = raffle
+          ? await supabase.from('profiles').select('role').eq('id', raffle.user_id).single()
+          : { data: null }
+
+        const platformWallet = process.env.RAPYD_PLATFORM_EWALLET_ID
+        // Rifas del master (BonoRifa) cobran directo en la cartera de la plataforma, como
+        // hasta ahora. Rifas de organizadores externos cobran en la cartera propia del
+        // organizador, y de ahi salen ambas transferencias (plataforma + vendedor).
+        let sourceWallet = platformWallet
+        if (ownerProfile?.role !== 'master' && raffle?.user_id) {
+          const { data: ownerWallet } = await supabase
+            .from('seller_rapyd_wallets')
+            .select('ewallet_id')
+            .eq('seller_id', raffle.user_id)
+            .single()
+          sourceWallet = ownerWallet?.ewallet_id
+        }
+
+        if (sourceWallet) {
+          // 1) Comision de plataforma (solo organizadores externos)
+          if (purchase.platform_commission_amount > 0 && !purchase.platform_transfer_id && platformWallet) {
+            try {
+              const transferId = await transferBetweenWallets({
+                sourceEwallet: sourceWallet,
+                destinationEwallet: platformWallet,
+                amount: purchase.platform_commission_amount,
+              })
+              await supabase.from('purchases').update({ platform_transfer_id: transferId }).eq('id', purchaseId)
+            } catch (err) {
+              console.error('[rapyd-webhook] Error transfiriendo comisión de plataforma:', err)
+            }
+          }
+
+          // 2) Comision del vendedor
+          if (purchase.seller_id && purchase.vendor_commission_amount > 0 && !purchase.rapyd_transfer_id) {
+            const { data: sellerWallet } = await supabase
+              .from('seller_rapyd_wallets')
+              .select('ewallet_id')
+              .eq('seller_id', purchase.seller_id)
+              .single()
+
+            if (sellerWallet?.ewallet_id) {
+              try {
+                const transferId = await transferBetweenWallets({
+                  sourceEwallet: sourceWallet,
+                  destinationEwallet: sellerWallet.ewallet_id,
+                  amount: purchase.vendor_commission_amount,
+                })
+                await supabase.from('purchases').update({ rapyd_transfer_id: transferId }).eq('id', purchaseId)
+              } catch (err) {
+                console.error('[rapyd-webhook] Error transfiriendo comisión de vendedor:', err)
+              }
+            }
           }
         }
       }

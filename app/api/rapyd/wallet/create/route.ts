@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
 
     const adminClient = createAdminClient()
 
-    // Verificar que el usuario actual es admin/master y dueño del vendedor
     const { data: currentProfile } = await adminClient
       .from('profiles')
       .select('role')
@@ -34,15 +33,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
     }
 
+    // Un organizador (admin) puede crear su propia cartera. Si no es su propio id, debe
+    // ser el admin/master dueño de ese vendedor.
+    const isSelfService = sellerId === user.id
+
     const { data: seller } = await adminClient
       .from('profiles')
       .select('id, business_name, created_by, role')
       .eq('id', sellerId)
-      .eq('role', 'vendedor')
       .single()
 
-    if (!seller || (currentProfile.role !== 'master' && seller.created_by !== user.id)) {
-      return NextResponse.json({ error: 'Vendedor no encontrado' }, { status: 404 })
+    if (!seller) {
+      return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 404 })
+    }
+
+    if (!isSelfService) {
+      const isOwnerOfSeller = seller.role === 'vendedor' && (currentProfile.role === 'master' || seller.created_by === user.id)
+      if (!isOwnerOfSeller) {
+        return NextResponse.json({ error: 'Vendedor no encontrado' }, { status: 404 })
+      }
     }
 
     // Si ya tiene cartera, no crear otra
