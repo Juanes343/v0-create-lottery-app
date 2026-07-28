@@ -5,23 +5,28 @@ import { Wallet, Loader2, Banknote, ArrowDownToLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
 
 interface RapydWalletCardProps {
   sellerId: string
 }
 
+interface PayoutRecord {
+  id: string
+  amount: number
+  bank_name: string | null
+  account_number: string
+  beneficiary_name: string
+  status: string
+  paid_at: string | null
+  requested_at: string
+}
+
 interface WalletStatus {
   hasWallet: boolean
   balance?: number
+  available?: number
   hasBankInfo?: boolean
-}
-
-interface PayoutMethod {
-  name: string
-  category?: string
+  payouts?: PayoutRecord[]
 }
 
 export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
@@ -29,8 +34,7 @@ export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [showPayoutForm, setShowPayoutForm] = useState(false)
-  const [methods, setMethods] = useState<PayoutMethod[]>([])
-  const [payoutMethodType, setPayoutMethodType] = useState('')
+  const [bankName, setBankName] = useState('')
   const [beneficiaryName, setBeneficiaryName] = useState('')
   const [accountNumber, setAccountNumber] = useState('')
   const [identificationNumber, setIdentificationNumber] = useState('')
@@ -66,15 +70,6 @@ export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
     }
   }
 
-  const openPayoutForm = async () => {
-    setShowPayoutForm(true)
-    if (methods.length === 0) {
-      const res = await fetch('/api/rapyd/payout-methods')
-      const data = await res.json()
-      setMethods(data.methods ?? [])
-    }
-  }
-
   const handlePayout = async () => {
     setPayoutError(null)
     setPayoutLoading(true)
@@ -86,14 +81,14 @@ export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
           sellerId,
           amount: parseFloat(amount),
           beneficiaryName,
-          bankAccountNumber: accountNumber,
-          payoutMethodType,
+          bankName,
+          accountNumber,
           identificationNumber,
         }),
       })
       const data = await res.json()
       if (!res.ok) {
-        setPayoutError(data.error ?? 'Error al procesar el retiro')
+        setPayoutError(data.error ?? 'Error al registrar el retiro')
         return
       }
       setPayoutSuccess(true)
@@ -124,7 +119,7 @@ export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
             <p className="text-sm font-semibold" style={{ color: 'var(--dash-text)' }}>Cartera Rapyd</p>
             <p className="text-xs" style={{ color: 'var(--dash-muted)' }}>
               {status?.hasWallet
-                ? `Saldo disponible: $${(status.balance ?? 0).toLocaleString('es-CO')} COP`
+                ? `Disponible para retirar: $${(status.available ?? 0).toLocaleString('es-CO')} COP (acumulado $${(status.balance ?? 0).toLocaleString('es-CO')})`
                 : 'Aún no se ha creado la cartera de este vendedor'}
             </p>
           </div>
@@ -136,9 +131,9 @@ export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
             Crear cartera
           </Button>
         ) : (
-          <Button onClick={openPayoutForm} size="sm" variant="outline" style={{ border: '1px solid var(--dash-border)', color: 'var(--dash-text)' }}>
+          <Button onClick={() => setShowPayoutForm(true)} size="sm" variant="outline" style={{ border: '1px solid var(--dash-border)', color: 'var(--dash-text)' }}>
             <ArrowDownToLine className="mr-2 h-3.5 w-3.5" />
-            Retirar a banco
+            Registrar retiro
           </Button>
         )}
       </div>
@@ -147,21 +142,17 @@ export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
         <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: 'var(--dash-border)' }}>
           {payoutSuccess ? (
             <p className="text-sm font-semibold" style={{ color: 'rgba(52,211,153,1)' }}>
-              ✓ Retiro enviado correctamente
+              ✓ Retiro registrado. Recuerda transferirle a {beneficiaryName} por fuera de la plataforma (Nequi/transferencia bancaria) — Rapyd no soporta retiros domésticos COP en Colombia, así que este pago se hace manualmente.
             </p>
           ) : (
             <>
+              <p className="text-xs" style={{ color: 'var(--dash-muted)' }}>
+                Rapyd no permite retiros domésticos COP→COP a bancos colombianos (su API de payouts es solo para remesas internacionales). Registra aquí el retiro que le vas a transferir manualmente al vendedor, para llevar el control del saldo disponible.
+              </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs" style={{ color: 'var(--dash-muted)' }}>Banco</Label>
-                  <Select value={payoutMethodType} onValueChange={setPayoutMethodType}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un banco" /></SelectTrigger>
-                    <SelectContent>
-                      {methods.map((m) => (
-                        <SelectItem key={m.name} value={m.name}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="Ej: Bancolombia, Nequi" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs" style={{ color: 'var(--dash-muted)' }}>Monto a retirar (COP)</Label>
@@ -185,14 +176,26 @@ export function RapydWalletCard({ sellerId }: RapydWalletCardProps) {
               )}
               <Button
                 onClick={handlePayout}
-                disabled={payoutLoading || !payoutMethodType || !amount || !beneficiaryName || !accountNumber}
+                disabled={payoutLoading || !amount || !beneficiaryName || !accountNumber}
                 size="sm"
                 style={{ background: '#5C3BFE', color: '#fff', border: 'none' }}
               >
                 {payoutLoading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Banknote className="mr-2 h-3.5 w-3.5" />}
-                Confirmar retiro
+                Registrar retiro
               </Button>
             </>
+          )}
+
+          {(status.payouts ?? []).length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--dash-muted)' }}>Retiros anteriores</p>
+              {(status.payouts ?? []).map((p) => (
+                <div key={p.id} className="flex items-center justify-between rounded-lg px-3 py-1.5 text-xs" style={{ background: 'rgba(255,255,255,0.03)' }}>
+                  <span style={{ color: 'var(--dash-text)' }}>{p.beneficiary_name} · {p.bank_name ?? '—'}</span>
+                  <span className="font-bold" style={{ color: '#5C3BFE' }}>${Number(p.amount).toLocaleString('es-CO')} COP</span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
