@@ -54,7 +54,9 @@ async function rapydRequest<T = Record<string, unknown>>(
 
 export async function createRapydCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v0-create-lottery-app.vercel.app'
-  const platformWallet = process.env.RAPYD_PLATFORM_EWALLET_ID
+  // Por defecto cae en la cartera de la plataforma (BonoRifa); si la rifa es de un
+  // organizador externo, quien llama pasa su propia cartera como destino.
+  const destinationEwallet = input.destinationEwallet || process.env.RAPYD_PLATFORM_EWALLET_ID
 
   const data = await rapydRequest<{ id: string; redirect_url: string }>('post', '/v1/checkout', {
     amount: input.totalAmount,
@@ -65,9 +67,9 @@ export async function createRapydCheckout(input: CreateCheckoutInput): Promise<C
     cancel_checkout_url: `${siteUrl}/pago/fallido?purchase_id=${input.purchaseId}`,
     required_customer_fields: ['name', 'phone_number'],
     // Sin esto, el dinero cobrado cae al saldo general de la cuenta comerciante en vez
-    // de a la cartera de la plataforma, y la transferencia de comision al vendedor
-    // (transferCommissionToWallet) falla por fondos insuficientes en la cartera.
-    ...(platformWallet ? { ewallet: platformWallet } : {}),
+    // de a una cartera especifica, y las transferencias de comision fallan por fondos
+    // insuficientes en la cartera de origen.
+    ...(destinationEwallet ? { ewallet: destinationEwallet } : {}),
   })
 
   return {
@@ -125,23 +127,19 @@ export async function getWalletBalance(ewalletId: string): Promise<number> {
 }
 
 /**
- * Transfiere la comision de una venta desde la cartera de la plataforma (RAPYD_PLATFORM_EWALLET_ID)
- * hacia la cartera del vendedor, y la acepta automaticamente (la plataforma controla ambas
- * carteras, no requiere accion del vendedor).
+ * Transfiere fondos entre dos carteras propias (plataforma, organizador, vendedor) y
+ * acepta la transferencia automaticamente — la plataforma controla ambas carteras via
+ * API, no requiere accion de nadie mas.
  * https://docs.rapyd.net/en/transfer-funds-between-wallets.html
  */
-export async function transferCommissionToWallet(input: {
+export async function transferBetweenWallets(input: {
+  sourceEwallet: string
   destinationEwallet: string
   amount: number
   currency?: string
 }): Promise<string> {
-  const platformWallet = process.env.RAPYD_PLATFORM_EWALLET_ID
-  if (!platformWallet) {
-    throw new Error('Falta configurar RAPYD_PLATFORM_EWALLET_ID')
-  }
-
   const transfer = await rapydRequest<{ id: string; status: string }>('post', '/v1/ewallets/transfer', {
-    source_ewallet: platformWallet,
+    source_ewallet: input.sourceEwallet,
     destination_ewallet: input.destinationEwallet,
     amount: input.amount,
     currency: input.currency || 'COP',
