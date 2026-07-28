@@ -54,6 +54,7 @@ async function rapydRequest<T = Record<string, unknown>>(
 
 export async function createRapydCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://v0-create-lottery-app.vercel.app'
+  const platformWallet = process.env.RAPYD_PLATFORM_EWALLET_ID
 
   const data = await rapydRequest<{ id: string; redirect_url: string }>('post', '/v1/checkout', {
     amount: input.totalAmount,
@@ -63,6 +64,10 @@ export async function createRapydCheckout(input: CreateCheckoutInput): Promise<C
     complete_checkout_url: `${siteUrl}/pago/exitoso?purchase_id=${input.purchaseId}`,
     cancel_checkout_url: `${siteUrl}/pago/fallido?purchase_id=${input.purchaseId}`,
     required_customer_fields: ['name', 'phone_number'],
+    // Sin esto, el dinero cobrado cae al saldo general de la cuenta comerciante en vez
+    // de a la cartera de la plataforma, y la transferencia de comision al vendedor
+    // (transferCommissionToWallet) falla por fondos insuficientes en la cartera.
+    ...(platformWallet ? { ewallet: platformWallet } : {}),
   })
 
   return {
@@ -148,46 +153,6 @@ export async function transferCommissionToWallet(input: {
   })
 
   return transfer.id
-}
-
-/**
- * Crea un payout desde la cartera del vendedor hacia su cuenta bancaria real.
- * https://docs.rapyd.net/en/create-payout.html
- */
-export async function createWalletPayout(input: {
-  ewalletId: string
-  amount: number
-  beneficiaryName: string
-  bankAccountNumber: string
-  payoutMethodType: string
-  identificationNumber?: string
-}): Promise<{ id: string; status: string }> {
-  return rapydRequest('post', '/v1/payouts', {
-    ewallet: input.ewalletId,
-    payout_amount: input.amount,
-    payout_currency: 'COP',
-    sender_currency: 'COP',
-    sender_country: 'CO',
-    sender_entity_type: 'individual',
-    beneficiary_country: 'CO',
-    beneficiary_entity_type: 'individual',
-    payout_method_type: input.payoutMethodType,
-    beneficiary: {
-      name: input.beneficiaryName,
-      account_number: input.bankAccountNumber,
-      country: 'CO',
-      identification_number: input.identificationNumber,
-    },
-    description: 'Retiro de comision - BonoRifa',
-  })
-}
-
-/** Lista los tipos de metodo de payout disponibles para Colombia (bancos) */
-export async function listColombiaPayoutMethods() {
-  return rapydRequest<Array<{ name: string; category: string }>>(
-    'get',
-    '/v1/payout_methods/CO?currency=COP&payout_type=bank',
-  )
 }
 
 export function verifyRapydWebhookSignature(params: {

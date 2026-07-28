@@ -34,12 +34,24 @@ export async function GET(req: NextRequest) {
     console.error('[rapyd wallet balance] error:', err)
   }
 
+  const { data: payouts } = await adminClient
+    .from('seller_payout_requests')
+    .select('id, amount, bank_name, account_number, beneficiary_name, status, paid_at, requested_at')
+    .eq('seller_id', sellerId)
+    .order('requested_at', { ascending: false })
+
+  const totalPaidOut = (payouts ?? [])
+    .filter((p: { status: string }) => p.status === 'paid')
+    .reduce((acc: number, p: { amount: number }) => acc + Number(p.amount), 0)
+
   return NextResponse.json({
     hasWallet: true,
     ewalletId: wallet.ewallet_id,
     balance,
+    available: balance - totalPaidOut,
     hasBankInfo: !!(wallet.bank_name && wallet.account_number),
     bankName: wallet.bank_name,
     accountNumber: wallet.account_number,
+    payouts: payouts ?? [],
   })
 }
