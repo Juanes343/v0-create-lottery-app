@@ -10,10 +10,11 @@ import { Separator } from '@/components/ui/separator'
 import {
   Loader2, UserPlus, Save, Eye, EyeOff,
   CheckSquare, Square, Ticket, ShieldCheck, ShieldOff,
-  ShoppingCart, Hash, Link2, CreditCard,
+  ShoppingCart, Hash, Link2, CreditCard, UserCheck, Users,
 } from 'lucide-react'
 import type { Raffle, SellerWithAssignments } from '@/lib/types'
 import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
+import { QrLinkButton } from '@/components/dashboard/qr-link-button'
 import { RapydWalletCard } from '@/components/dashboard/rapyd-wallet-card'
 
 interface SellerFormProps {
@@ -23,11 +24,15 @@ interface SellerFormProps {
   availableRaffles: Pick<Raffle, 'id' | 'title' | 'slug' | 'status'>[]
   adminUsername?: string
   siteUrl?: string
-  stats?: { ventas: number; boletos: number; comision: number }
+  stats?: { ventas: number; boletos: number; comision: number; comisionReferidos?: number }
   mpConnected?: boolean
+  /** Otros vendedores del admin que pueden figurar como "referido por" */
+  referrerOptions?: { id: string; business_name: string }[]
+  /** Vendedores que este vendedor refirió (solo edición) */
+  referrals?: { id: string; business_name: string; status: string }[]
 }
 
-export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminUsername, siteUrl = '', stats, mpConnected }: SellerFormProps) {
+export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminUsername, siteUrl = '', stats, mpConnected, referrerOptions = [], referrals = [] }: SellerFormProps) {
   const router = useRouter()
   const isEdit = mode === 'edit'
 
@@ -37,6 +42,7 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
   const [status, setStatus]   = useState<'active' | 'inactive'>(seller?.status ?? 'active')
+  const [referredBy, setReferredBy] = useState(seller?.referred_by ?? '')
 
   // Raffle assignments
   const assignedIds = seller?.assigned_raffles.map(a => a.raffle_id) ?? []
@@ -56,7 +62,7 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
       const res = await fetch('/api/vendedores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name, assignedRaffleIds: selected }),
+        body: JSON.stringify({ email, password, name, assignedRaffleIds: selected, referredBy: referredBy || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al crear vendedor')
@@ -79,7 +85,12 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
       const resProfile = await fetch(`/api/vendedores/${seller.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, status }),
+        body: JSON.stringify({
+          name,
+          status,
+          // Solo si cambió, para no tocar referred_by sin necesidad
+          ...(referredBy !== (seller.referred_by ?? '') ? { referredBy: referredBy || null } : {}),
+        }),
       })
       if (!resProfile.ok) {
         const d = await resProfile.json()
@@ -157,8 +168,13 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
               <CreditCard className="h-4 w-4" style={{ color: 'rgba(167,139,250,1)' }} />
             </div>
             <p className="mt-2 text-3xl font-black" style={{ color: 'rgba(167,139,250,1)' }}>
-              ${stats.comision.toLocaleString('es-CO')}
+              ${(stats.comision + (stats.comisionReferidos ?? 0)).toLocaleString('es-CO')}
             </p>
+            {(stats.comisionReferidos ?? 0) > 0 && (
+              <p className="mt-1 text-xs" style={{ color: 'var(--dash-muted)' }}>
+                ${stats.comision.toLocaleString('es-CO')} ventas propias · ${(stats.comisionReferidos ?? 0).toLocaleString('es-CO')} por referidos
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -225,7 +241,12 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
                       {link ?? 'No disponible'}
                     </p>
                   </div>
-                  {link && <CopyLinkButton url={link} />}
+                  {link && (
+                    <>
+                      <CopyLinkButton url={link} />
+                      <QrLinkButton url={link} title={a.raffle?.title ?? 'Rifa'} subtitle={seller.business_name} />
+                    </>
+                  )}
                 </div>
               )
             })}
@@ -268,6 +289,24 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
             />
           </div>
 
+          <div className="space-y-2 sm:col-span-2">
+            <Label style={labelStyle}>Referido por</Label>
+            <select
+              value={referredBy}
+              onChange={e => setReferredBy(e.target.value)}
+              className="flex h-9 w-full rounded-md px-3 text-sm"
+              style={inputStyle}
+            >
+              <option value="">— Nadie (vendedor directo) —</option>
+              {referrerOptions.map(o => (
+                <option key={o.id} value={o.id}>{o.business_name || 'Sin nombre'}</option>
+              ))}
+            </select>
+            <p className="text-xs" style={{ color: 'var(--dash-muted)' }}>
+              Quien lo refirió gana el % de "Comisión por referido" de cada rifa sobre las ventas de este vendedor.
+            </p>
+          </div>
+
           {!isEdit && (
             <div className="space-y-2 sm:col-span-2">
               <Label style={labelStyle}>Contraseña temporal *</Label>
@@ -295,6 +334,33 @@ export function SellerForm({ mode, seller, sellerEmail, availableRaffles, adminU
           )}
         </div>
       </div>
+
+      {/* ---- Referidos de este vendedor (solo edición) ---- */}
+      {isEdit && referrals.length > 0 && (
+        <div className="p-6" style={cardStyle}>
+          <h3 className="mb-4 flex items-center gap-2 text-base font-semibold" style={{ color: 'var(--dash-text)' }}>
+            <Users className="h-4 w-4" style={{ color: '#22d3ee' }} />
+            Sus referidos ({referrals.length})
+          </h3>
+          <div className="space-y-2">
+            {referrals.map(r => (
+              <div
+                key={r.id}
+                className="flex items-center gap-3 rounded-xl px-4 py-2.5"
+                style={{ background: 'var(--dash-card)', border: '1px solid var(--dash-border)' }}
+              >
+                <UserCheck className="h-4 w-4 shrink-0" style={{ color: 'var(--dash-muted)' }} />
+                <span className="flex-1 truncate text-sm font-medium" style={{ color: 'var(--dash-text)' }}>
+                  {r.business_name || 'Sin nombre'}
+                </span>
+                <span className="text-xs font-semibold" style={{ color: r.status === 'active' ? 'rgba(52,211,153,1)' : 'rgba(248,113,113,1)' }}>
+                  {r.status === 'active' ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ---- Estado (solo en edición) ---- */}
       {isEdit && (

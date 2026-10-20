@@ -27,6 +27,14 @@ export default async function NuevoVendedorPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
+  // Vendedores del admin, para elegir el "referido por"
+  const { data: sellers } = await supabase
+    .from('profiles')
+    .select('id, business_name')
+    .eq('created_by', user.id)
+    .eq('role', 'vendedor')
+    .order('business_name')
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Header */}
@@ -59,6 +67,7 @@ export default async function NuevoVendedorPage() {
 
       <SellerForm
         mode="create"
+        referrerOptions={sellers ?? []}
         availableRaffles={(raffles ?? []) as Pick<Raffle, 'id' | 'title' | 'slug' | 'status'>[]}
       />
     </div>

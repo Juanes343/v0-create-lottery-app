@@ -36,6 +36,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
   const [pricePerNumber, setPricePerNumber] = useState(raffle?.price_per_number || 2000)
   const [minPurchaseQuantity, setMinPurchaseQuantity] = useState(raffle?.min_purchase_quantity ?? 0)
   const [vendorCommissionPercent, setVendorCommissionPercent] = useState(raffle?.vendor_commission_percent ?? 0)
+  const [referralCommissionPercent, setReferralCommissionPercent] = useState(raffle?.referral_commission_percent ?? 0)
   const [currency] = useState(raffle?.currency || 'COP')
   const [status, setStatus] = useState(raffle?.status || 'draft')
   const [drawDate, setDrawDate] = useState(raffle?.draw_date || '')
@@ -153,6 +154,10 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
       price_per_number: pricePerNumber,
       min_purchase_quantity: minPurchaseQuantity,
       vendor_commission_percent: vendorCommissionPercent,
+      // Solo se envia si la columna existe (migracion 024) o si se configuro un valor
+      ...(referralCommissionPercent > 0 || raffle?.referral_commission_percent !== undefined
+        ? { referral_commission_percent: referralCommissionPercent }
+        : {}),
       currency,
       status,
       draw_date: drawDate || null,
@@ -519,7 +524,7 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
               />
               <p className="text-xs text-muted-foreground">
                 {minPurchaseQuantity > 0
-                  ? `Las ventas manuales exigirán al menos ${minPurchaseQuantity} número${minPurchaseQuantity !== 1 ? 's' : ''} por venta.`
+                  ? `Toda compra (manual, en línea o por paquete) exigirá al menos ${minPurchaseQuantity} número${minPurchaseQuantity !== 1 ? 's' : ''}. Los paquetes con menos números no se mostrarán.`
                   : '0 = sin mínimo, se puede vender cualquier cantidad.'}
               </p>
             </div>
@@ -539,6 +544,24 @@ export function RaffleForm({ raffle, userId }: RaffleFormProps) {
                 {vendorCommissionPercent > 0
                   ? `Si el vendedor tiene su cuenta de Mercado Pago conectada, el ${vendorCommissionPercent}% de cada venta por MP se acredita automáticamente a tu cuenta y el resto queda directo en la del vendedor.`
                   : '0 = sin comisión configurada.'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="referral-commission">Comisión por referido (%)</Label>
+              <Input
+                id="referral-commission"
+                type="number"
+                min={0}
+                max={100}
+                step={0.5}
+                value={referralCommissionPercent}
+                onChange={(e) => setReferralCommissionPercent(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+              />
+              <p className="text-xs text-muted-foreground">
+                {referralCommissionPercent > 0
+                  ? `Cuando venda un vendedor referido, quien lo refirió gana el ${referralCommissionPercent}% de esa venta (además de la comisión del vendedor). Solo un nivel.`
+                  : '0 = sin comisión por referidos.'}
               </p>
             </div>
 

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyRapydWebhookSignature, transferBetweenWallets } from '@/lib/payments/rapyd'
+import { sendPurchaseEmail } from '@/lib/purchase-email'
 
 /**
  * Webhook de Rapyd. IMPORTANTE: usa el body crudo (texto) para verificar la firma —
@@ -53,10 +54,13 @@ export async function POST(req: NextRequest) {
         .update({ status: 'paid' })
         .eq('purchase_id', purchaseId)
 
+      // Correo de confirmacion despues de responder, para no demorar el webhook
+      after(() => sendPurchaseEmail(purchaseId))
+
       // Transferir automáticamente la comisión de plataforma y la del vendedor
       const { data: purchase } = await supabase
         .from('purchases')
-        .select('raffle_id, seller_id, vendor_commission_amount, rapyd_transfer_id, platform_commission_amount, platform_transfer_id')
+        .select('*')
         .eq('id', purchaseId)
         .single()
 
@@ -119,6 +123,30 @@ export async function POST(req: NextRequest) {
               } catch (err) {
                 console.error('[rapyd-webhook] Error transfiriendo comisión de vendedor:', err)
               }
+            }
+          }
+
+          // 3) Comision por referido (vendedor que refirio al vendedor de la venta)
+          if (purchase.referrer_id && purchase.referral_commission_amount > 0 && !purchase.referral_transfer_id) {
+            const { data: referrerWallet } = await supabase
+              .from('seller_rapyd_wallets')
+              .select('ewallet_id')
+              .eq('seller_id', purchase.referrer_id)
+              .single()
+
+            if (referrerWallet?.ewallet_id) {
+              try {
+                const transferId = await transferBetweenWallets({
+                  sourceEwallet: sourceWallet,
+                  destinationEwallet: referrerWallet.ewallet_id,
+                  amount: purchase.referral_commission_amount,
+                })
+                await supabase.from('purchases').update({ referral_transfer_id: transferId }).eq('id', purchaseId)
+              } catch (err) {
+                console.error('[rapyd-webhook] Error transfiriendo comisión por referido:', err)
+              }
+            } else {
+              console.warn('[rapyd-webhook] El vendedor que refirió no tiene cartera Rapyd:', purchase.referrer_id)
             }
           }
         }

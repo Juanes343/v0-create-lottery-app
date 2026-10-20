@@ -1,94 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { sendPurchaseConfirmationEmail } from '@/lib/email'
+import { sendPurchaseEmail } from '@/lib/purchase-email'
 
 export async function POST(req: NextRequest) {
   try {
     const { purchase_id, force } = await req.json()
-    console.log('[send-purchase-email] Recibido purchase_id:', purchase_id, 'force:', !!force)
 
     if (!purchase_id) {
       return NextResponse.json({ error: 'Falta purchase_id' }, { status: 400 })
     }
 
-    const supabase = createAdminClient()
+    const result = await sendPurchaseEmail(purchase_id, { force: !!force })
+    console.log('[send-purchase-email]', purchase_id, result)
 
-    const { data: purchase, error: purchaseError } = await supabase
-      .from('purchases')
-      .select('*')
-      .eq('id', purchase_id)
-      .single()
-
-    console.log('[send-purchase-email] purchase:', purchase ? { id: purchase.id, email: purchase.buyer_email, status: purchase.status, email_sent: purchase.email_sent } : null, 'error:', purchaseError?.message)
-
-    if (!purchase) {
-      return NextResponse.json({ error: 'Compra no encontrada', detail: purchaseError?.message }, { status: 404 })
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 500 })
     }
-
-    // No enviar si email es falso
-    if (!purchase.buyer_email || purchase.buyer_email.includes('@noemail.bonorifa.com')) {
-      console.log('[send-purchase-email] Skipping: no real email')
-      return NextResponse.json({ ok: true, skipped: true, reason: 'no_real_email' })
-    }
-
-    // Solo saltear si ya fue enviado Y no es un reenvío forzado (consultar)
-    if (purchase.email_sent && purchase.status === 'completed' && !force) {
-      console.log('[send-purchase-email] Skipping: email_sent=true y status=completed')
-      return NextResponse.json({ ok: true, skipped: true, reason: 'already_sent' })
-    }
-
-    const { data: raffleData, error: raffleError } = await supabase
-      .from('raffles')
-      .select('id, slug, title, price_per_number, whatsapp_number, user_id')
-      .eq('id', purchase.raffle_id)
-      .single()
-
-    console.log('[send-purchase-email] raffleData:', raffleData ? { title: raffleData.title, slug: raffleData.slug } : null, 'error:', raffleError?.message)
-
-    if (!raffleData) {
-      return NextResponse.json({ error: 'Rifa no encontrada', detail: raffleError?.message }, { status: 404 })
-    }
-
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('username, business_name, whatsapp')
-      .eq('id', raffleData.user_id)
-      .single()
-
-    console.log('[send-purchase-email] profileData:', profileData ? { username: profileData.username } : null, 'error:', profileError?.message)
-
-    const profile = profileData ?? { username: 'demo', business_name: 'BonoriFa', whatsapp: null }
-    const rafflePath = `/${profile.username}/${raffleData.slug}`
-
-    // Obtener números desde sold_numbers o desde purchase.numbers
-    const { data: soldNums } = await supabase
-      .from('sold_numbers')
-      .select('number')
-      .eq('purchase_id', purchase_id)
-
-    const numbers: number[] =
-      soldNums && soldNums.length > 0
-        ? soldNums.map((n: { number: number }) => n.number).sort((a, b) => a - b)
-        : (purchase.numbers || []).sort((a: number, b: number) => a - b)
-
-    console.log('[send-purchase-email] Enviando email a:', purchase.buyer_email, '| números:', numbers)
-
-    await sendPurchaseConfirmationEmail({
-      to: purchase.buyer_email,
-      buyerName: purchase.buyer_name,
-      raffleName: raffleData.title,
-      numbers,
-      totalAmount: purchase.total_amount,
-      currency: purchase.currency || 'COP',
-      rafflePath,
-      businessName: profile.business_name || 'BonoriFa',
-    })
-
-    // Marcar como enviado
-    await supabase.from('purchases').update({ email_sent: true }).eq('id', purchase_id)
-
-    console.log(`Email enviado correctamente para purchase ${purchase_id}`)
-    return NextResponse.json({ ok: true })
+    return NextResponse.json(result)
   } catch (err) {
     console.error('Error enviando email de confirmación:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

@@ -10,6 +10,8 @@ export interface Profile {
   role: UserRole
   status: UserStatus
   created_by?: string
+  /** Vendedor que refirió a este vendedor (un solo nivel) */
+  referred_by?: string | null
   created_at: string
   updated_at: string
 }
@@ -27,6 +29,8 @@ export interface Raffle {
   price_per_number: number
   min_purchase_quantity?: number
   vendor_commission_percent?: number
+  /** % de la venta que gana el vendedor que refirió al vendedor que vendió */
+  referral_commission_percent?: number
   currency: string
   status: 'draft' | 'active' | 'completed' | 'cancelled'
   draw_date?: string
@@ -80,6 +84,8 @@ export interface Purchase {
   total_amount: number
   amount_paid?: number
   vendor_commission_amount?: number
+  referrer_id?: string | null
+  referral_commission_amount?: number
   mp_split_applied?: boolean
   currency: string
   status: PurchaseStatus

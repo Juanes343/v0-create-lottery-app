@@ -14,15 +14,25 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle, ArrowLeft, ExternalLink, CheckCircle2, XCircle } from 'lucide-react'
+import { MessageCircle, Copy, Check, User, Phone, Mail, CreditCard, Loader2, AlertCircle, ArrowLeft, ExternalLink, CheckCircle2, XCircle, Shuffle } from 'lucide-react'
 import { usePaymentStatus } from '@/hooks/use-payment-status'
+
+export interface CheckoutPackage {
+  id: string
+  quantity: number
+  discountPercent: number
+  totalPrice: number
+}
 
 interface CheckoutModalProps {
   isOpen: boolean
   onClose: () => void
   raffleId: string
   raffleName: string
-  selectedNumbers: number[]
+  /** Números elegidos a mano. Se ignora si viene `pkg`. */
+  selectedNumbers?: number[]
+  /** Compra por paquete: los números se asignan al azar en el servidor al continuar al pago */
+  pkg?: CheckoutPackage
   pricePerNumber: number
   currency: string
   whatsappNumber?: string
@@ -35,7 +45,8 @@ export function CheckoutModal({
   onClose,
   raffleId,
   raffleName,
-  selectedNumbers,
+  selectedNumbers = [],
+  pkg,
   pricePerNumber,
   currency,
   whatsappNumber,
@@ -58,8 +69,8 @@ export function CheckoutModal({
 
   const paymentStatus = usePaymentStatus(step === 'payment' ? purchaseId : null)
 
-  const displayNumbers = numbersSnapshot ?? selectedNumbers
-  const total = displayNumbers.length * pricePerNumber
+  const displayNumbers = numbersSnapshot ?? (pkg ? [] : selectedNumbers)
+  const total = pkg ? pkg.totalPrice : displayNumbers.length * pricePerNumber
   const numberDigits = 5
 
   const formatNumber = (num: number) => num.toString().padStart(numberDigits, '0')
@@ -74,11 +85,13 @@ export function CheckoutModal({
   }
 
   const generateWhatsAppMessage = () => {
-    const numbersText = selectedNumbers.map(formatNumber).join(', ')
-    const message = `Hola! Quiero comprar los siguientes numeros de la rifa "${raffleName}":
+    const detail = pkg
+      ? `Paquete: ${pkg.quantity} numeros al azar`
+      : `Numeros: ${selectedNumbers.map(formatNumber).join(', ')}
+Cantidad: ${selectedNumbers.length} numeros`
+    const message = `Hola! Quiero comprar en la rifa "${raffleName}":
 
-Numeros: ${numbersText}
-Cantidad: ${selectedNumbers.length} numeros
+${detail}
 Total: ${formatPrice(total)}
 
 Mis datos:
@@ -117,7 +130,7 @@ Por favor confirmar disponibilidad y metodo de pago.`
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           raffleId,
-          selectedNumbers,
+          ...(pkg ? { packageId: pkg.id } : { selectedNumbers }),
           buyerName: name.trim(),
           buyerPhone: phone.trim(),
           buyerEmail: email.trim() || undefined,
@@ -136,7 +149,8 @@ Por favor confirmar disponibilidad y metodo de pago.`
       setPreferenceId(data.preferenceId)
       setCheckoutUrl(data.checkoutUrl)
       setPurchaseId(data.purchaseId)
-      setNumbersSnapshot([...selectedNumbers])
+      // Con paquete, los números los sorteó el servidor
+      setNumbersSnapshot(pkg ? data.numbers ?? [] : [...selectedNumbers])
     } catch {
       setMpError('Error de conexión. Intenta de nuevo.')
     } finally {
@@ -158,6 +172,11 @@ Por favor confirmar disponibilidad y metodo de pago.`
     setNumbersSnapshot(null)
     setMpError(null)
   }
+
+  // Al cambiar de paquete, empezar de cero (no reutilizar la compra del paquete anterior)
+  useEffect(() => {
+    handleVolver()
+  }, [pkg?.id])
 
   const copyNumbers = () => {
     const numbersText = displayNumbers.map(formatNumber).join(', ')
@@ -182,7 +201,9 @@ Por favor confirmar disponibilidad y metodo de pago.`
           </DialogTitle>
           <DialogDescription>
             {step === 'form'
-              ? 'Completa tus datos para reservar los números seleccionados'
+              ? pkg
+                ? 'Completa tus datos para comprar el paquete'
+                : 'Completa tus datos para reservar los números seleccionados'
               : `Total a pagar: ${formatPrice(total)}`}
           </DialogDescription>
         </DialogHeader>
@@ -192,29 +213,42 @@ Por favor confirmar disponibilidad y metodo de pago.`
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-muted-foreground">Números seleccionados</span>
-                <Button variant="ghost" size="sm" onClick={copyNumbers}>
-                  {copied ? (
-                    <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {displayNumbers.slice(0, 10).map((num) => (
-                  <Badge key={num} variant="secondary" className="font-mono">
-                    {formatNumber(num)}
-                  </Badge>
-                ))}
-                {displayNumbers.length > 10 && (
-                  <Badge variant="outline">+{displayNumbers.length - 10} más</Badge>
+                <span className="text-sm text-muted-foreground">
+                  {pkg ? `Paquete x${pkg.quantity}` : 'Números seleccionados'}
+                </span>
+                {displayNumbers.length > 0 && (
+                  <Button variant="ghost" size="sm" onClick={copyNumbers}>
+                    {copied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
                 )}
               </div>
+              {pkg && displayNumbers.length === 0 ? (
+                <div className="mb-4 flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                  <Shuffle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>Tus {pkg.quantity} números se asignan al azar entre los disponibles al continuar al pago.</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {displayNumbers.slice(0, 10).map((num) => (
+                    <Badge key={num} variant="secondary" className="font-mono">
+                      {formatNumber(num)}
+                    </Badge>
+                  ))}
+                  {displayNumbers.length > 10 && (
+                    <Badge variant="outline">+{displayNumbers.length - 10} más</Badge>
+                  )}
+                </div>
+              )}
               <Separator className="my-3" />
               <div className="flex justify-between items-center">
                 <span className="text-sm">
-                  {displayNumbers.length} números × {formatPrice(pricePerNumber)}
+                  {pkg
+                    ? `${pkg.quantity} números${pkg.discountPercent > 0 ? ` · ${pkg.discountPercent}% OFF` : ''}`
+                    : `${displayNumbers.length} números × ${formatPrice(pricePerNumber)}`}
                 </span>
                 <span className="text-lg font-bold text-primary">{formatPrice(total)}</span>
               </div>

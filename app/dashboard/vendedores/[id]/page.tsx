@@ -72,6 +72,39 @@ export default async function EditarVendedorPage({ params }: Props) {
     comision: (sellerPurchases ?? []).reduce((acc: number, p: { vendor_commission_amount?: number }) => acc + (p.vendor_commission_amount ?? 0), 0),
   }
 
+  // Otros vendedores del mismo admin: opciones de "referido por" y referidos de este vendedor
+  const { data: teamSellers } = await adminClientInPage
+    .from('profiles')
+    .select('*')
+    .eq('created_by', seller.created_by)
+    .eq('role', 'vendedor')
+    .neq('id', sellerId)
+    .order('business_name')
+
+  const referrerOptions = (teamSellers ?? []).map((s: { id: string; business_name: string }) => ({
+    id: s.id,
+    business_name: s.business_name,
+  }))
+  const referrals = (teamSellers ?? [])
+    .filter((s: { referred_by?: string | null }) => s.referred_by === sellerId)
+    .map((s: { id: string; business_name: string; status: string }) => ({
+      id: s.id,
+      business_name: s.business_name,
+      status: s.status,
+    }))
+
+  // Comisión ganada por las ventas de sus referidos
+  const { data: referralPurchases } = await adminClientInPage
+    .from('purchases')
+    .select('*')
+    .eq('referrer_id', sellerId)
+    .eq('status', 'completed')
+
+  const comisionReferidos = (referralPurchases ?? []).reduce(
+    (acc: number, p: { referral_commission_amount?: number }) => acc + Number(p.referral_commission_amount ?? 0),
+    0,
+  )
+
   // ¿El vendedor tiene su cuenta de Mercado Pago conectada?
   const { data: mpAccount } = await adminClientInPage
     .from('seller_mp_accounts')
@@ -140,8 +173,10 @@ export default async function EditarVendedorPage({ params }: Props) {
         availableRaffles={(raffles ?? []) as Pick<Raffle, 'id' | 'title' | 'slug' | 'status'>[]}
         adminUsername={profile.username}
         siteUrl={process.env.NEXT_PUBLIC_SITE_URL ?? ''}
-        stats={sellerStats}
+        stats={{ ...sellerStats, comisionReferidos }}
         mpConnected={!!mpAccount}
+        referrerOptions={referrerOptions}
+        referrals={referrals}
       />
     </div>
   )
