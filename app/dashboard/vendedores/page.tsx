@@ -11,6 +11,7 @@ import {
 import type { Raffle } from '@/lib/types'
 import { SellerActions } from '@/components/dashboard/seller-actions'
 import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
+import { QrLinkButton } from '@/components/dashboard/qr-link-button'
 
 export default async function VendedoresPage() {
   const supabase = await createClient()
@@ -65,8 +66,27 @@ export default async function VendedoresPage() {
     salesBySeller[p.seller_id].comision += p.vendor_commission_amount ?? 0
   }
 
-  // Estado de conexión de Mercado Pago de cada vendedor (tabla solo accesible con service_role)
   const adminClient = createAdminClient()
+
+  // Comisión por referidos ganada por cada vendedor (ventas completadas de sus referidos)
+  const { data: referralPurchases } = sellerIds.length > 0
+    ? await adminClient
+        .from('purchases')
+        .select('*')
+        .in('referrer_id', sellerIds)
+        .eq('status', 'completed')
+    : { data: [] }
+
+  const referralBySeller: Record<string, number> = {}
+  for (const p of (referralPurchases ?? []) as { referrer_id: string; referral_commission_amount?: number }[]) {
+    referralBySeller[p.referrer_id] = (referralBySeller[p.referrer_id] ?? 0) + Number(p.referral_commission_amount ?? 0)
+  }
+
+  const sellerNameById: Record<string, string> = Object.fromEntries(
+    (sellers ?? []).map((s: { id: string; business_name: string }) => [s.id, s.business_name ?? 'Sin nombre'])
+  )
+
+  // Estado de conexión de Mercado Pago de cada vendedor (tabla solo accesible con service_role)
   const { data: mpAccounts } = sellerIds.length > 0
     ? await adminClient
         .from('seller_mp_accounts')
@@ -163,12 +183,14 @@ export default async function VendedoresPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {(sellers ?? []).map((seller: { id: string; business_name: string; status: string; created_at: string }) => {
+            {(sellers ?? []).map((seller: { id: string; business_name: string; status: string; created_at: string; referred_by?: string | null }) => {
               const sellerAssignments = (assignments ?? []).filter(
                 (a: { seller_id: string }) => a.seller_id === seller.id
               )
               const isActive = seller.status === 'active'
-              const sellerStats = salesBySeller[seller.id] ?? { ventas: 0, boletos: 0 }
+              const sellerStats = salesBySeller[seller.id] ?? { ventas: 0, boletos: 0, comision: 0 }
+              const referralEarnings = referralBySeller[seller.id] ?? 0
+              const referrerName = seller.referred_by ? sellerNameById[seller.referred_by] : null
 
               return (
                 <div
@@ -209,6 +231,14 @@ export default async function VendedoresPage() {
                         >
                           Vendedor
                         </Badge>
+                        {referrerName && (
+                          <Badge
+                            variant="outline"
+                            style={{ borderColor:'rgba(251,146,60,0.35)', color:'rgba(251,146,60,1)', background:'rgba(251,146,60,0.08)' }}
+                          >
+                            Referido por {referrerName}
+                          </Badge>
+                        )}
                         <Badge
                           variant="outline"
                           className="flex items-center gap-1"
@@ -237,6 +267,11 @@ export default async function VendedoresPage() {
                             <strong>${sellerStats.comision.toLocaleString('es-CO')}</strong> COP comisión
                           </span>
                         )}
+                        {referralEarnings > 0 && (
+                          <span className="flex items-center gap-1" style={{ color: 'rgba(251,146,60,1)' }}>
+                            <strong>${referralEarnings.toLocaleString('es-CO')}</strong> COP por referidos
+                          </span>
+                        )}
                       </div>
 
                       {/* Rifas asignadas + enlace de venta por vendedor */}
@@ -260,9 +295,14 @@ export default async function VendedoresPage() {
                                 <Ticket className="h-3 w-3" />
                                 {raffle?.title ?? 'Rifa'}
                                 {refLink && (
-                                  <span className="scale-[0.7] -mx-1">
-                                    <CopyLinkButton url={refLink} />
-                                  </span>
+                                  <>
+                                    <span className="scale-[0.7] -mx-1">
+                                      <CopyLinkButton url={refLink} />
+                                    </span>
+                                    <span className="scale-[0.7] -mx-1">
+                                      <QrLinkButton url={refLink} title={raffle?.title ?? 'Rifa'} subtitle={seller.business_name} />
+                                    </span>
+                                  </>
                                 )}
                               </span>
                             )

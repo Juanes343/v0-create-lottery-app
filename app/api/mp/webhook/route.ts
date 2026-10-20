@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import MercadoPagoConfig, { Payment } from 'mercadopago'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendPurchaseEmail } from '@/lib/purchase-email'
 
 const mpClient = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -51,7 +52,8 @@ export async function POST(req: NextRequest) {
         .update({ status: 'paid' })
         .eq('purchase_id', purchaseId)
 
-      // El email de confirmación se envía desde la página /pago/exitoso
+      // Correo de confirmacion despues de responder, para no demorar el webhook
+      after(() => sendPurchaseEmail(purchaseId))
 
     } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
       // Marcar compra como fallida

@@ -1,21 +1,53 @@
 'use client'
 
+import { useCallback, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { NumberPackage } from '@/lib/types'
 import { getRaffleTheme } from '@/lib/themes'
-import { Zap, Star } from 'lucide-react'
+import { Zap, Star, Shuffle } from 'lucide-react'
 import Tilt from 'react-parallax-tilt'
+import { CheckoutModal, type CheckoutPackage } from './checkout-modal'
 
 interface PackageSelectorProps {
+  raffleId: string
+  raffleName: string
   packages: NumberPackage[]
   pricePerNumber: number
   currency: string
   themeId?: string
+  whatsappNumber?: string
+  paymentInstructions?: string
+  minPurchaseQuantity?: number
+  availableCount: number
 }
 
-export function PackageSelector({ packages, pricePerNumber, currency, themeId }: PackageSelectorProps) {
-  const sorted = [...packages].sort((a, b) => a.quantity - b.quantity)
+export function PackageSelector({
+  raffleId,
+  raffleName,
+  packages,
+  pricePerNumber,
+  currency,
+  themeId,
+  whatsappNumber,
+  paymentInstructions,
+  minPurchaseQuantity = 0,
+  availableCount,
+}: PackageSelectorProps) {
+  const router = useRouter()
+  const [selectedPkg, setSelectedPkg] = useState<CheckoutPackage | null>(null)
+
+  const handleCheckoutSuccess = useCallback(() => {
+    router.refresh()
+  }, [router])
+
+  // Un paquete por debajo de la cantidad mínima de compra de la rifa no se puede vender
+  const sorted = [...packages]
+    .filter((p) => p.quantity >= minPurchaseQuantity)
+    .sort((a, b) => a.quantity - b.quantity)
   const mostPopular = sorted.reduce((best, p) => p.discount_percent > best.discount_percent ? p : best, sorted[0])
   const theme = getRaffleTheme(themeId)
+
+  if (sorted.length === 0) return null
 
   // Variantes de color intercaladas usando la misma paleta del tema
   const cardVariants = [
@@ -43,6 +75,7 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
   ]
 
   return (
+    <>
     <section className="relative mt-10 overflow-hidden rounded-2xl shadow-xl" style={{ backgroundColor: '#080d14', border: `1px solid ${theme.accentText}15` }}>
       {/* Header */}
       <div className="relative overflow-hidden px-6 py-5 text-center" style={{ backgroundColor: '#0a0f18', borderBottom: `1px solid ${theme.accentText}15` }}>
@@ -64,6 +97,10 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
           </div>
           <h2 className="text-3xl font-black uppercase tracking-tight text-white sm:text-4xl">Adquíérelos</h2>
           <p className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Más números = más posibilidades de ganar</p>
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            <Shuffle className="h-3.5 w-3.5" style={{ color: theme.accentText }} />
+            Los números de cada paquete se asignan al azar
+          </p>
         </div>
       </div>
 
@@ -78,6 +115,7 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
           const savings = originalPrice - discountedPrice
           const isPopular = pkg.id === mostPopular?.id && pkg.discount_percent > 0
           const variant = cardVariants[idx % cardVariants.length]
+          const isSoldOut = pkg.quantity > availableCount
 
           return (
             <Tilt key={pkg.id} tiltMaxAngleX={5} tiltMaxAngleY={5} scale={1.02} transitionSpeed={2000} className="h-full">
@@ -136,13 +174,20 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
                 </div>
 
                 <button
-                  className="mt-6 w-full rounded-xl py-3.5 text-sm font-black uppercase tracking-wide transition-all active:scale-95 hover:opacity-90 shadow-lg"
+                  disabled={isSoldOut}
+                  onClick={() => setSelectedPkg({
+                    id: pkg.id,
+                    quantity: pkg.quantity,
+                    discountPercent: pkg.discount_percent,
+                    totalPrice: discountedPrice,
+                  })}
+                  className="mt-6 w-full rounded-xl py-3.5 text-sm font-black uppercase tracking-wide transition-all active:scale-95 hover:opacity-90 shadow-lg disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100"
                   style={isPopular
                     ? { backgroundColor: theme.accentText, color: theme.topBar, boxShadow: `0 4px 20px ${theme.accentText}40` }
                     : { backgroundColor: variant.btnBg, color: variant.btnColor }
                   }
                 >
-                  Comprar Paquete
+                  {isSoldOut ? 'Agotado' : 'Comprar Paquete'}
                 </button>
               </div>
             </Tilt>
@@ -150,6 +195,20 @@ export function PackageSelector({ packages, pricePerNumber, currency, themeId }:
         })}
       </div>
     </section>
+
+    <CheckoutModal
+      isOpen={!!selectedPkg}
+      onClose={() => setSelectedPkg(null)}
+      raffleId={raffleId}
+      raffleName={raffleName}
+      pkg={selectedPkg ?? undefined}
+      pricePerNumber={pricePerNumber}
+      currency={currency}
+      whatsappNumber={whatsappNumber}
+      paymentInstructions={paymentInstructions}
+      onSuccess={handleCheckoutSuccess}
+    />
+    </>
   )
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { validateReferrer } from '@/lib/referrals'
 
 /** POST /api/vendedores — Crea un vendedor y lo asocia al admin actual */
 export async function POST(req: NextRequest) {
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, password, name, assignedRaffleIds = [] } = body
+    const { email, password, name, assignedRaffleIds = [], referredBy = null } = body
 
     if (!email?.trim() || !password?.trim() || !name?.trim()) {
       return NextResponse.json({ error: 'email, password y name son obligatorios' }, { status: 400 })
@@ -34,6 +35,11 @@ export async function POST(req: NextRequest) {
 
     if (password.length < 6) {
       return NextResponse.json({ error: 'La contraseña debe tener mínimo 6 caracteres' }, { status: 400 })
+    }
+
+    const referrerError = await validateReferrer(adminClient, { referrerId: referredBy, ownerId: currentUser.id })
+    if (referrerError) {
+      return NextResponse.json({ error: referrerError }, { status: 400 })
     }
 
     // Crear usuario en auth.users (confirmar email automáticamente)
@@ -73,6 +79,7 @@ export async function POST(req: NextRequest) {
           role: 'vendedor',
           status: 'active',
           created_by: currentUser.id,
+          ...(referredBy ? { referred_by: referredBy } : {}),
         },
         { onConflict: 'id' }
       )

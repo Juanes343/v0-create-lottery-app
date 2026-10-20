@@ -10,6 +10,7 @@ import { ExternalLink, Users } from 'lucide-react'
 import { SoldNumbersList } from '@/components/dashboard/sold-numbers-list'
 import { ManualSaleModal } from '@/components/dashboard/manual-sale-modal'
 import { CopyLinkButton } from '@/components/dashboard/copy-link-button'
+import { QrLinkButton } from '@/components/dashboard/qr-link-button'
 
 export default async function RaffleDetailPage({
   params,
@@ -167,6 +168,7 @@ export default async function RaffleDetailPage({
               {fullPublicUrl}
             </code>
             <CopyLinkButton url={fullPublicUrl} />
+            <QrLinkButton url={fullPublicUrl} title={raffle.title} />
           </div>
         </CardContent>
       </Card>

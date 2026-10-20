@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
+import { validateReferrer } from '@/lib/referrals'
 
 interface Params { params: Promise<{ id: string }> }
 
-/** PATCH /api/vendedores/[id] — Actualiza nombre y/o estado del vendedor */
+/** PATCH /api/vendedores/[id] — Actualiza nombre, estado y/o "referido por" del vendedor */
 export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const { id: sellerId } = await params
@@ -44,9 +45,23 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     const body = await req.json()
     const { name, status } = body
 
-    const updates: Record<string, string> = {}
+    const updates: Record<string, string | null> = {}
     if (name?.trim())  updates.business_name = name.trim()
     if (status && ['active', 'inactive'].includes(status)) updates.status = status
+
+    // referredBy: id de otro vendedor del mismo admin, o null para quitarlo
+    if ('referredBy' in body) {
+      const referredBy: string | null = body.referredBy || null
+      const referrerError = await validateReferrer(adminClient, {
+        referrerId: referredBy,
+        sellerId,
+        ownerId: seller.created_by,
+      })
+      if (referrerError) {
+        return NextResponse.json({ error: referrerError }, { status: 400 })
+      }
+      updates.referred_by = referredBy
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Sin cambios para aplicar' }, { status: 400 })

@@ -7,6 +7,7 @@ import {
   Phone, Mail, ChevronDown, ChevronUp, Wifi, WifiOff,
 } from 'lucide-react'
 import { CopyLinkButton } from './copy-link-button'
+import { QrLinkButton } from './qr-link-button'
 import { ManualSaleModal } from './manual-sale-modal'
 
 interface RaffleStats {
@@ -353,7 +354,12 @@ export function VendorRaffleCard({ raffle, purchases, publicUrl, fullPublicUrl, 
           </button>
 
           {/* Copiar enlace */}
-          {fullPublicUrl && <CopyLinkButton url={fullPublicUrl} />}
+          {fullPublicUrl && (
+            <>
+              <CopyLinkButton url={fullPublicUrl} />
+              <QrLinkButton url={fullPublicUrl} title={raffle.title} subtitle="Tu enlace de venta" />
+            </>
+          )}
         </div>
       </div>
 

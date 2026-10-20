@@ -206,10 +206,16 @@ export default async function PublicRafflePage({ params }: Props) {
         {/* Paquetes */}
         {packages && packages.length > 0 && (
           <PackageSelector
+            raffleId={raffle.id}
+            raffleName={raffle.title}
             packages={packages}
             pricePerNumber={raffle.price_per_number}
             currency={raffle.currency}
             themeId={raffle.theme}
+            whatsappNumber={raffle.whatsapp_number}
+            paymentInstructions={raffle.payment_instructions}
+            minPurchaseQuantity={raffle.min_purchase_quantity}
+            availableCount={totalNumbers - soldCount}
           />
         )}
       </main>

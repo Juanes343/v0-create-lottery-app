@@ -153,6 +153,20 @@ export default async function DashboardPage() {
   const totalSold     = vendorPurchases.reduce((acc, p) => acc + (p.sold_numbers?.length ?? 0), 0) || rafflesWithStats.reduce((acc, r) => acc + r.sold_count, 0)
   const totalRevenue  = rafflesWithStats.reduce((acc, r) => acc + r.sold_count * r.price_per_number, 0)
 
+  // Comisión ganada por las ventas de los vendedores que este vendedor refirió
+  let referralEarnings = 0
+  if (isVendedor) {
+    const { data: referralPurchases } = await adminClient
+      .from('purchases')
+      .select('*')
+      .eq('referrer_id', user?.id)
+      .eq('status', 'completed')
+    referralEarnings = (referralPurchases ?? []).reduce(
+      (acc: number, p: { referral_commission_amount?: number }) => acc + Number(p.referral_commission_amount ?? 0),
+      0,
+    )
+  }
+
   const completedSales = vendorPurchases.filter(p => p.status === 'completed').length
   const totalVendorAmount = vendorPurchases
     .filter(p => p.status === 'completed')
@@ -185,6 +199,9 @@ export default async function DashboardPage() {
     { label: 'Nums Vendidos',    value: totalSold,        sub: 'Via tu enlace',                                          icon: Hash,        accent: 'rgba(34,211,238,1)', glow: 'rgba(34,211,238,0.1)',  border: 'rgba(34,211,238,0.2)'  },
     { label: 'Ventas Cerradas',  value: completedSales,   sub: `${vendorPurchases.length} totales`,                      icon: ShoppingCart,accent: 'rgba(52,211,153,1)', glow: 'rgba(52,211,153,0.1)',  border: 'rgba(52,211,153,0.2)'  },
     { label: 'Total Recaudado',  value: `$${totalVendorAmount.toLocaleString('es-CO')}`, sub: 'COP confirmado',          icon: DollarSign,  accent: 'rgba(251,146,60,1)', glow: 'rgba(251,146,60,0.1)',  border: 'rgba(251,146,60,0.2)'  },
+    ...(referralEarnings > 0
+      ? [{ label: 'Por Referidos', value: `$${referralEarnings.toLocaleString('es-CO')}`, sub: 'COP de comisión', icon: Users, accent: 'rgba(167,139,250,1)', glow: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.2)' }]
+      : []),
   ]
 
   const stats = isVendedor ? statsVendedor : statsAdmin
